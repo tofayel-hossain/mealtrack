@@ -267,35 +267,33 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {activeRole === 'manager' && (
-            <div style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-card)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.25rem',
-              display: 'flex',
-              gap: '0.25rem',
-            }}>
-              <button
-                onClick={() => setActiveTab('personal')}
-                className={`btn btn-sm ${activeTab === 'personal' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ border: 'none' }}
-              >
-                Personal View
-              </button>
-              <button
-                onClick={() => setActiveTab('manager')}
-                className={`btn btn-sm ${activeTab === 'manager' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ border: 'none' }}
-              >
-                Manager Overview
-              </button>
-            </div>
-          )}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.25rem',
+            display: 'flex',
+            gap: '0.25rem',
+          }}>
+            <button
+              onClick={() => setActiveTab('personal')}
+              className={`btn btn-sm ${activeTab === 'personal' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ border: 'none' }}
+            >
+              Personal
+            </button>
+            <button
+              onClick={() => setActiveTab('manager')}
+              className={`btn btn-sm ${activeTab === 'manager' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ border: 'none' }}
+            >
+              Overview
+            </button>
+          </div>
 
           <button onClick={() => setShowExpenseModal(true)} className="btn btn-outline btn-sm">
-            <ShoppingBag size={15} /> Add Expense
+            <ShoppingBag size={15} /> + Expense
           </button>
           {activeRole === 'manager' && (
             <>
@@ -563,9 +561,9 @@ export const DashboardPage: React.FC = () => {
             />
 
             <StatCard
-              title="Bazar"
-              value={formatCurrency(mySummary?.total_bazar_done, settings?.currency_symbol)}
-              subtitle={`${mySummary?.bazar_trips_count ?? 0} entries`}
+              title="Bazar Trips"
+              value={`${mySummary?.bazar_trips_count ?? 0} times`}
+              subtitle="Visits outside"
               icon={ShoppingBag}
               variant="primary"
             />
@@ -633,9 +631,9 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bazar</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bazar Trips</span>
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--accent-teal)' }}>
-                  +{formatCurrency(mySummary?.total_bazar_done, settings?.currency_symbol)}
+                  {mySummary?.bazar_trips_count ?? 0} times
                 </div>
               </div>
 
@@ -699,12 +697,17 @@ export const DashboardPage: React.FC = () => {
         </>
       )}
 
-      {/* VIEW: MANAGER OVERVIEW DASHBOARD */}
-      {activeTab === 'manager' && activeRole === 'manager' && (
+      {/* VIEW: OVERVIEW DASHBOARD */}
+      {activeTab === 'manager' && (
         <>
-          <div className="grid-cols-4" style={{ marginBottom: '1.25rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem',
+          }}>
             <StatCard
-              title="Fund Balance"
+              title="Total Fund"
               value={formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
               subtitle={`Deposits: ${formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}`}
               icon={Wallet}
@@ -712,19 +715,35 @@ export const DashboardPage: React.FC = () => {
             />
 
             <StatCard
-              title="Total Bazar"
+              title="Total Expense"
               value={formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
-              subtitle={`${accounting?.total_meals ?? 0} meals • Rate: ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
+              subtitle="All Bazar Expenses"
               icon={ShoppingBag}
               variant="warning"
             />
 
             <StatCard
-              title="Fixed Bills"
-              value={`${formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / person`}
-              subtitle={`Total: ${formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}`}
-              icon={Receipt}
+              title="Total Meals"
+              value={`${accounting?.total_meals ?? 0}`}
+              subtitle={`${accounting?.members.length ?? 0} members`}
+              icon={UtensilsCrossed}
+              variant="primary"
+            />
+
+            <StatCard
+              title="Meal Rate"
+              value={formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
+              subtitle="Per meal"
+              icon={TrendingUp}
               variant="info"
+            />
+
+            <StatCard
+              title="Payment"
+              value={formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
+              subtitle="Total Deposits"
+              icon={Wallet}
+              variant="credit"
             />
 
             <StatCard
@@ -739,19 +758,24 @@ export const DashboardPage: React.FC = () => {
           {/* Member Roster & Balance Status */}
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Members Summary</h2>
                 <span className="badge badge-credit" style={{ fontSize: '0.7rem' }}>
-                  Day {accounting?.days_elapsed ?? 0}
+                  Rate: {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
+                </span>
+                <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                  Total Meals: {accounting?.total_meals ?? 0}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  onClick={() => setShowCostsModal(true)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  <Settings2 size={13} /> Costs & Rent
-                </button>
+                {activeRole === 'manager' && (
+                  <button
+                    onClick={() => setShowCostsModal(true)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <Settings2 size={13} /> Costs & Rent
+                  </button>
+                )}
                 <Link to="/accounting" className="btn btn-primary btn-sm">
                   Accounting <ArrowRight size={13} />
                 </Link>
@@ -765,11 +789,11 @@ export const DashboardPage: React.FC = () => {
                     <th>Member</th>
                     <th>Meals</th>
                     <th>Meal Cost</th>
-                    <th>Bazar</th>
+                    <th>Bazar Trips</th>
                     <th>Bills</th>
                     <th>Rent</th>
                     <th>Total</th>
-                    <th>Paid</th>
+                    <th>Payment</th>
                     <th style={{ textAlign: 'right' }}>Due</th>
                   </tr>
                 </thead>
@@ -777,10 +801,12 @@ export const DashboardPage: React.FC = () => {
                   {accounting?.members.map((m) => (
                     <tr key={m.member_id}>
                       <td style={{ fontWeight: 600 }}>{m.member_name}</td>
-                      <td>{m.meal_count}</td>
+                      <td style={{ fontWeight: 700 }}>{m.meal_count}</td>
                       <td>{formatCurrency(m.meal_cost, settings?.currency_symbol)}</td>
-                      <td style={{ color: 'var(--accent-teal)' }}>
-                        {formatCurrency(m.total_bazar_done, settings?.currency_symbol)}
+                      <td>
+                        <span className="badge badge-neutral" style={{ fontWeight: 700, color: 'var(--accent-teal)' }}>
+                          {m.bazar_trips_count ?? 0} times
+                        </span>
                       </td>
                       <td style={{ color: 'var(--accent-teal)' }}>
                         {formatCurrency(m.shared_fixed_cost, settings?.currency_symbol)}
@@ -797,19 +823,44 @@ export const DashboardPage: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         {m.amount_need_to_pay > 0 ? (
                           <span className="badge badge-debt" style={{ fontWeight: 700 }}>
-                            {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
+                            Due: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
                           </span>
                         ) : m.surplus_advance > 0 ? (
                           <span className="badge badge-credit" style={{ fontWeight: 700 }}>
                             +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
                           </span>
                         ) : (
-                          <span className="badge badge-secondary">0</span>
+                          <span className="badge badge-secondary">৳0</span>
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr style={{ fontWeight: 800, borderTop: '2px solid var(--border-card)', background: 'rgba(255, 255, 255, 0.02)' }}>
+                    <td>Total</td>
+                    <td style={{ color: 'var(--brand-primary)' }}>{accounting?.total_meals ?? 0}</td>
+                    <td>{formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}</td>
+                    <td style={{ color: 'var(--accent-teal)' }}>
+                      {accounting?.members.reduce((sum, m) => sum + (m.bazar_trips_count ?? 0), 0) ?? 0} times
+                    </td>
+                    <td style={{ color: 'var(--accent-teal)' }}>
+                      {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
+                    </td>
+                    <td style={{ color: 'var(--accent-indigo)' }}>
+                      {formatCurrency(accounting?.total_house_rent, settings?.currency_symbol)}
+                    </td>
+                    <td style={{ color: 'var(--color-debt)' }}>
+                      {formatCurrency(accounting?.members.reduce((sum, m) => sum + (m.total_billed ?? 0), 0), settings?.currency_symbol)}
+                    </td>
+                    <td style={{ color: 'var(--brand-primary)' }}>
+                      {formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--color-debt)' }}>
+                      Due: {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>

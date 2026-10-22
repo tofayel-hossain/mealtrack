@@ -168,7 +168,7 @@ export const ReportsPage: React.FC = () => {
                     <th>Rent</th>
                     <th>Billed</th>
                     <th>Deposits</th>
-                    <th>Bazar</th>
+                    <th>Bazar Trips</th>
                     <th>Balance</th>
                     <th style={{ textAlign: 'right' }}>Due</th>
                   </tr>
@@ -184,7 +184,11 @@ export const ReportsPage: React.FC = () => {
                         <td style={{ color: 'var(--accent-indigo)' }}>{formatCurrency(m.house_rent, settings?.currency_symbol)}</td>
                         <td style={{ fontWeight: 700, color: 'var(--color-debt)' }}>{formatCurrency(m.total_billed, settings?.currency_symbol)}</td>
                         <td style={{ color: 'var(--brand-primary)' }}>+{formatCurrency(m.deposits, settings?.currency_symbol)}</td>
-                        <td style={{ color: 'var(--accent-teal)' }}>+{formatCurrency(m.total_bazar_done, settings?.currency_symbol)}</td>
+                        <td>
+                          <span className="badge badge-neutral" style={{ fontWeight: 700, color: 'var(--accent-teal)' }}>
+                            {m.bazar_trips_count ?? 0} times
+                          </span>
+                        </td>
                         <td style={{ fontWeight: 700, color: m.closing_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
                           {formatCurrency(m.closing_balance, settings?.currency_symbol)}
                         </td>

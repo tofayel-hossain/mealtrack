@@ -326,7 +326,7 @@ export const AccountingPage: React.FC = () => {
                     <th style={{ color: 'var(--color-debt)' }}>Billed</th>
                     <th>Opening</th>
                     <th>Paid</th>
-                    <th>Bazar</th>
+                    <th>Bazar Trips</th>
                     <th style={{ color: 'var(--brand-primary)', textAlign: 'right' }}>Due</th>
                   </tr>
                 </thead>
@@ -358,8 +358,10 @@ export const AccountingPage: React.FC = () => {
                         <td style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
                           +{formatCurrency(m.deposits, settings?.currency_symbol)}
                         </td>
-                        <td style={{ color: 'var(--accent-teal)', fontSize: '0.85rem' }}>
-                          +{formatCurrency(m.total_bazar_done, settings?.currency_symbol)}
+                        <td>
+                          <span className="badge badge-neutral" style={{ fontWeight: 700, color: 'var(--accent-teal)' }}>
+                            {m.bazar_trips_count ?? 0} times
+                          </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           {needsToPay ? (
