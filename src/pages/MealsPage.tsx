@@ -9,6 +9,9 @@ import {
   CalendarCheck,
   Sun,
   Moon,
+  Power,
+  PowerOff,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +20,7 @@ import {
   getDailyMealRecords,
   saveDailyMealRecord,
   updateCookingDayStatus,
+  toggleMealSystemActiveStatus,
 } from '../services/api';
 import { PostCutoffModal } from '../components/PostCutoffModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -29,7 +33,7 @@ import {
 import type { CookingDay, DailyMealRecord } from '../types';
 
 export const MealsPage: React.FC = () => {
-  const { activeSystem, activeRole, settings, members } = useMealSystem();
+  const { activeSystem, activeRole, settings, members, refreshSystemData } = useMealSystem();
   const { user } = useAuth();
 
   const todayStr = getDhakaTodayDateString();
@@ -37,6 +41,7 @@ export const MealsPage: React.FC = () => {
   const [cookingDays, setCookingDays] = useState<CookingDay[]>([]);
   const [mealRecords, setMealRecords] = useState<DailyMealRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingSystem, setTogglingSystem] = useState(false);
 
   // Manager post-cutoff modal state
   const [editingRecord, setEditingRecord] = useState<DailyMealRecord | null>(null);
@@ -52,6 +57,13 @@ export const MealsPage: React.FC = () => {
   const openDate = settings?.meal_start_date || (activeSystem?.created_at ? activeSystem.created_at.slice(0, 10) : undefined) || `${currentPeriod}-01`;
   const isBeforeOpen = selectedDate < openDate;
   const isFutureDate = selectedDate > todayStr;
+
+  // Master Meal System Off status
+  const isSystemMasterOff = Boolean(settings?.is_meal_system_off);
+  const isSystemOffForSelectedDate = Boolean(
+    isSystemMasterOff &&
+    (!settings?.meal_system_off_date || selectedDate >= settings.meal_system_off_date)
+  );
 
   const cutoff = getMealCutoffInfo({
     lunchCutoffTime: settings?.lunch_cutoff_time,
@@ -105,18 +117,41 @@ export const MealsPage: React.FC = () => {
 
   const todayCooking = cookingDays.find((c) => c.date === selectedDate);
   const cookingStatus = todayCooking?.status || 'cooking';
-  const isNoCooking = isBeforeOpen || cookingStatus === 'no_cooking';
+  const isNoCooking = isBeforeOpen || isSystemOffForSelectedDate || cookingStatus === 'no_cooking';
 
   // Current user's record on selected date
   const myRecord = mealRecords.find((r) => r.member_id === user?.id && r.date === selectedDate);
   const isAfternoonOff = isNoCooking || (myRecord?.lunch_turned_off ?? myRecord?.is_turned_off ?? false);
   const isNightOff = isNoCooking || (myRecord?.dinner_turned_off ?? myRecord?.is_turned_off ?? false);
   const isFullMealOff = isAfternoonOff && isNightOff;
-  const myEffectiveMeals = isBeforeOpen ? 0 : (isAfternoonOff ? 0 : 1) + (isNightOff ? 0 : 1);
+  const myEffectiveMeals = (isBeforeOpen || isSystemOffForSelectedDate || isNoCooking)
+    ? 0
+    : (isAfternoonOff ? 0 : 1) + (isNightOff ? 0 : 1);
+
+  // Toggle meal system ON/OFF (Manager)
+  const handleToggleSystemOff = async () => {
+    if (!activeSystem || !user || activeRole !== 'manager') return;
+    const newOff = !isSystemMasterOff;
+
+    try {
+      setTogglingSystem(true);
+      await toggleMealSystemActiveStatus(activeSystem.id, newOff, user.id);
+      await refreshSystemData();
+      await loadMealData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update meal system status');
+    } finally {
+      setTogglingSystem(false);
+    }
+  };
 
   // Toggle user's afternoon meal
   const handleToggleAfternoon = async () => {
     if (!activeSystem || !user) return;
+    if (isSystemOffForSelectedDate) {
+      alert('Meal system is fully turned off. Meals remain 0 until opened by manager.');
+      return;
+    }
     if (isNoCooking) {
       alert('Cooking is cancelled for this day.');
       return;
@@ -146,6 +181,10 @@ export const MealsPage: React.FC = () => {
   // Toggle user's night meal
   const handleToggleNight = async () => {
     if (!activeSystem || !user) return;
+    if (isSystemOffForSelectedDate) {
+      alert('Meal system is fully turned off. Meals remain 0 until opened by manager.');
+      return;
+    }
     if (isNoCooking) {
       alert('Cooking is cancelled for this day.');
       return;
@@ -175,7 +214,7 @@ export const MealsPage: React.FC = () => {
   // Cut full day meals
   const handleToggleFullMeal = async () => {
     if (!activeSystem || !user) return;
-    if (isNoCooking) return;
+    if (isSystemOffForSelectedDate || isNoCooking) return;
 
     const willTurnOff = !isFullMealOff;
     if (willTurnOff && cutoff.isFullPastCutoff && activeRole !== 'manager') {
@@ -240,21 +279,48 @@ export const MealsPage: React.FC = () => {
   return (
     <div className="page-wrapper">
       {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
-        <div>
-          <h1>Daily Meals</h1>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0 }}>Daily Meals</h1>
+          {isSystemMasterOff ? (
+            <span className="badge badge-debt" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}>
+              <PowerOff size={13} /> System OFF (0 Meals)
+            </span>
+          ) : (
+            <span className="badge badge-credit" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}>
+              <Power size={13} /> System Open
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <input
-              type="date"
-              className="form-control"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              style={{ padding: '0.5rem 0.75rem' }}
-            />
-          </div>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Manager Master ON/OFF Button */}
+          {activeRole === 'manager' && (
+            <button
+              onClick={handleToggleSystemOff}
+              disabled={togglingSystem}
+              className={`btn btn-sm ${isSystemMasterOff ? 'btn-primary' : 'btn-danger'}`}
+              style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              {isSystemMasterOff ? (
+                <>
+                  <Power size={14} /> Open Meal System
+                </>
+              ) : (
+                <>
+                  <PowerOff size={14} /> Turn Off Meal System
+                </>
+              )}
+            </button>
+          )}
+
+          <input
+            type="date"
+            className="form-control"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', width: 'auto' }}
+          />
           <button
             onClick={() => setSelectedDate(todayStr)}
             className={`btn btn-sm ${selectedDate === todayStr ? 'btn-primary' : 'btn-secondary'}`}
@@ -269,7 +335,7 @@ export const MealsPage: React.FC = () => {
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
         gap: '0.5rem',
-        marginBottom: '1.5rem',
+        marginBottom: '1.25rem',
         overflowX: 'auto',
       }}>
         {dateStrip.map((dStr) => {
@@ -278,7 +344,7 @@ export const MealsPage: React.FC = () => {
           const dayCooking = cookingDays.find((c) => c.date === dStr);
           const status = dayCooking?.status || 'cooking';
           const isDayBeforeOpen = dStr < openDate;
-          const isDayFuture = dStr > todayStr;
+          const isDaySystemOff = isSystemMasterOff && (!settings?.meal_system_off_date || dStr >= settings.meal_system_off_date);
 
           return (
             <button
@@ -305,16 +371,14 @@ export const MealsPage: React.FC = () => {
                 {formatDate(dStr, { day: 'numeric' })}
               </div>
               <div>
-                {isDayBeforeOpen ? (
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Not Open</span>
-                ) : isDayFuture ? (
-                  <span style={{ fontSize: '0.65rem', color: '#818cf8' }}>Upcoming</span>
-                ) : status === 'cooking' ? (
-                  <span style={{ fontSize: '0.65rem', color: 'var(--brand-primary)' }}>Cooking</span>
+                {isDaySystemOff ? (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--color-debt)', fontWeight: 700 }}>OFF</span>
+                ) : isDayBeforeOpen ? (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Closed</span>
                 ) : status === 'no_cooking' ? (
                   <span style={{ fontSize: '0.65rem', color: 'var(--color-debt)', fontWeight: 700 }}>No Cook</span>
                 ) : (
-                  <span style={{ fontSize: '0.65rem', color: 'var(--color-warning)' }}>Pending</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--brand-primary)' }}>Open</span>
                 )}
               </div>
             </button>
@@ -322,183 +386,180 @@ export const MealsPage: React.FC = () => {
         })}
       </div>
 
-      {/* SYSTEM COOKING STATUS HERO CARD */}
-      <div
-        className="card"
-        style={{
-          background: isBeforeOpen
-            ? 'linear-gradient(135deg, rgba(148, 163, 184, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
-            : isNoCooking
-            ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
-            : cookingStatus === 'pending'
-            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
-            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)',
-          border: `1px solid ${
-            isBeforeOpen
-              ? 'rgba(148, 163, 184, 0.3)'
-              : isNoCooking
-              ? 'rgba(244, 63, 94, 0.3)'
-              : cookingStatus === 'pending'
-              ? 'rgba(245, 158, 11, 0.3)'
-              : 'rgba(16, 185, 129, 0.3)'
-          }`,
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+      {/* SYSTEM STATUS CARD */}
+      {isSystemOffForSelectedDate ? (
+        <div className="card" style={{
+          background: 'rgba(244, 63, 94, 0.08)',
+          border: '1px solid rgba(244, 63, 94, 0.3)',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          padding: '1.25rem 1.5rem',
+        }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                Kitchen Status for {formatDate(selectedDate, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </span>
-              <span className={`badge ${isBeforeOpen ? 'badge-secondary' : isNoCooking ? 'badge-debt' : isFutureDate ? 'badge-warning' : cookingStatus === 'pending' ? 'badge-warning' : 'badge-credit'}`}>
-                {isBeforeOpen ? 'Mess Not Open Yet' : isNoCooking ? 'No Cooking Today' : isFutureDate ? 'Upcoming Day' : cookingStatus === 'pending' ? 'Pending Confirmation' : 'Cooking Scheduled'}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <PowerOff size={18} color="var(--color-debt)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--color-debt)' }}>
+                Meal System is OFF
+              </h2>
             </div>
-
-            <h3 style={{ fontSize: '1.35rem', marginBottom: '0.35rem' }}>
-              {isBeforeOpen
-                ? `Kitchen Not Open Yet (Mess started on ${formatDate(openDate)})`
-                : isNoCooking
-                ? 'Kitchen Closed (0 Meals Charged)'
-                : isFutureDate
-                ? 'Upcoming Day (Meals count day by day when date arrives)'
-                : cookingStatus === 'pending'
-                ? 'Schedule Pending Confirmation'
-                : 'Regular 2 Meals (Afternoon & Night) • Day Counted'}
-            </h3>
-
-            {todayCooking?.note && (
-              <p style={{ color: 'var(--text-main)', fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '0.4rem' }}>
-                "{todayCooking.note}"
-              </p>
-            )}
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-              <Clock size={14} />
-              <span>
-                Afternoon Cutoff: <strong>{settings?.lunch_cutoff_time?.slice(0, 5) || '10:00 AM'}</strong> ({cutoff.afternoonTimeLeft}) • Night Cutoff: <strong>{settings?.dinner_cutoff_time?.slice(0, 5) || '17:00 PM'}</strong> ({cutoff.nightTimeLeft})
-              </span>
-            </div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              All meals are 0 until opened by manager.
+            </p>
           </div>
 
           {activeRole === 'manager' && (
             <button
-              onClick={() => setEditingCookingStatus(!editingCookingStatus)}
-              className="btn btn-secondary btn-sm"
+              onClick={handleToggleSystemOff}
+              disabled={togglingSystem}
+              className="btn btn-primary btn-sm"
+              style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              <Edit2 size={14} /> {editingCookingStatus ? 'Cancel Edit' : 'Edit Kitchen Status'}
+              <Power size={15} /> Open Meal System
             </button>
           )}
         </div>
-
-        {/* Manager Cooking Status Form */}
-        {editingCookingStatus && activeRole === 'manager' && (
-          <div style={{
-            marginTop: '1.25rem',
-            paddingTop: '1.25rem',
-            borderTop: '1px solid var(--border-subtle)',
-          }}>
-            <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Update Kitchen Status for {selectedDate}</h4>
-            <div className="grid-cols-2">
-              <div className="form-group">
-                <label className="form-label">Cooking Status</label>
-                <select
-                  className="form-control"
-                  value={statusVal}
-                  onChange={(e) => setStatusVal(e.target.value as any)}
-                >
-                  <option value="cooking">Cooking Scheduled (Afternoon & Night)</option>
-                  <option value="no_cooking">No Cooking (Overrides all meals to 0)</option>
-                  <option value="pending">Pending Confirmation</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Note / Reason</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Cook on leave"
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                />
-              </div>
+      ) : (
+        <div className="card" style={{
+          marginBottom: '1.25rem',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <UtensilsCrossed size={18} color="var(--brand-primary)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+                {isNoCooking ? 'No Cooking Today (0 Meals)' : 'Kitchen Open'}
+              </h2>
+              <span className={`badge ${isNoCooking ? 'badge-debt' : 'badge-credit'}`} style={{ fontSize: '0.7rem' }}>
+                {isNoCooking ? 'Closed' : 'Active'}
+              </span>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <button onClick={() => setEditingCookingStatus(false)} className="btn btn-secondary btn-sm">
-                Cancel
-              </button>
-              <button onClick={handleSaveCookingStatus} className="btn btn-primary btn-sm">
-                Save Status
-              </button>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Clock size={13} />
+              <span>
+                Cutoffs: Afternoon <strong>{settings?.lunch_cutoff_time?.slice(0, 5) || '10:00'}</strong> • Night <strong>{settings?.dinner_cutoff_time?.slice(0, 5) || '17:00'}</strong>
+              </span>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* 2 MEALS: PERSONAL SLOT CONTROLS */}
-      <div className="card" style={{ marginBottom: '1.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {activeRole === 'manager' && (
+              <button
+                onClick={() => setEditingCookingStatus(!editingCookingStatus)}
+                className="btn btn-secondary btn-sm"
+              >
+                <Edit2 size={13} /> {editingCookingStatus ? 'Close' : 'No Cook / Note'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Manager Cooking Status Form */}
+      {editingCookingStatus && activeRole === 'manager' && !isSystemOffForSelectedDate && (
+        <div className="card" style={{ marginBottom: '1.25rem', border: '1px solid var(--border-focus)' }}>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem' }}>Cooking Status for {selectedDate}</h3>
+          <div className="grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Cooking Status</label>
+              <select
+                className="form-control"
+                value={statusVal}
+                onChange={(e) => setStatusVal(e.target.value as any)}
+              >
+                <option value="cooking">Cooking Scheduled (2 Meals)</option>
+                <option value="no_cooking">No Cooking (0 Meals)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Note</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Cook on leave"
+                value={statusNote}
+                onChange={(e) => setStatusNote(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button onClick={() => setEditingCookingStatus(false)} className="btn btn-secondary btn-sm">
+              Cancel
+            </button>
+            <button onClick={handleSaveCookingStatus} className="btn btn-primary btn-sm">
+              Save Status
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PERSONAL SLOT CONTROLS */}
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <div>
-            <h3>My Meal Status on {selectedDate}</h3>
-            <p>
-              {isNoCooking ? (
-                'Cooking cancelled'
-              ) : isFullMealOff ? (
-                '0 Meals'
-              ) : (
-                `${myEffectiveMeals} ${myEffectiveMeals === 1 ? 'Meal' : 'Meals'}`
-              )}
+            <h3 style={{ margin: 0, fontSize: '1.05rem' }}>My Meal Status</h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              {isSystemOffForSelectedDate
+                ? '0 Meals (System is OFF)'
+                : isNoCooking
+                ? 'Cooking cancelled (0 Meals)'
+                : `${myEffectiveMeals} ${myEffectiveMeals === 1 ? 'Meal' : 'Meals'}`}
             </p>
           </div>
 
-          {!isNoCooking && (
+          {!isNoCooking && !isSystemOffForSelectedDate && (
             <button
               onClick={handleToggleFullMeal}
               className={`btn btn-sm ${isFullMealOff ? 'btn-primary' : 'btn-danger'}`}
             >
-              {isFullMealOff ? 'Turn Full Meal ON' : 'Cut Full Meal'}
+              {isFullMealOff ? 'Take Full Day' : 'Cut Full Day'}
             </button>
           )}
         </div>
 
-        {!isNoCooking && (
+        {!isNoCooking && !isSystemOffForSelectedDate && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '0.75rem',
           }}>
             {/* Afternoon Slot */}
             <div style={{
               background: 'rgba(11, 15, 25, 0.7)',
               border: `1px solid ${!isAfternoonOff ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
               borderRadius: 'var(--radius-md)',
-              padding: '1rem',
+              padding: '0.85rem 1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
-                  <Sun size={17} color="var(--accent-amber)" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <Sun size={16} color="var(--accent-amber)" />
                   Afternoon Meal
                 </div>
-                <div style={{ fontSize: '0.8rem', color: !isAfternoonOff ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.2rem', fontWeight: 600 }}>
-                  {!isAfternoonOff ? 'ON (1 meal)' : 'Cut (0 meals)'}
+                <div style={{ fontSize: '0.78rem', color: !isAfternoonOff ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.15rem', fontWeight: 600 }}>
+                  {!isAfternoonOff ? 'Taking (1 meal)' : 'Cut (0 meals)'}
                 </div>
               </div>
 
-              <div>
-                <button
-                  onClick={handleToggleAfternoon}
-                  disabled={cutoff.isAfternoonPastCutoff && activeRole !== 'manager'}
-                  className={`btn btn-sm ${!isAfternoonOff ? 'btn-danger' : 'btn-primary'}`}
-                >
-                  {!isAfternoonOff ? 'Cut Afternoon' : 'Take Afternoon'}
-                </button>
-              </div>
+              <button
+                onClick={handleToggleAfternoon}
+                disabled={cutoff.isAfternoonPastCutoff && activeRole !== 'manager'}
+                className={`btn btn-sm ${!isAfternoonOff ? 'btn-danger' : 'btn-primary'}`}
+              >
+                {!isAfternoonOff ? 'Cut' : 'Take'}
+              </button>
             </div>
 
             {/* Night Slot */}
@@ -506,49 +567,45 @@ export const MealsPage: React.FC = () => {
               background: 'rgba(11, 15, 25, 0.7)',
               border: `1px solid ${!isNightOff ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
               borderRadius: 'var(--radius-md)',
-              padding: '1rem',
+              padding: '0.85rem 1rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
-                  <Moon size={17} color="#a5b4fc" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <Moon size={16} color="var(--accent-indigo)" />
                   Night Meal
                 </div>
-                <div style={{ fontSize: '0.8rem', color: !isNightOff ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.2rem', fontWeight: 600 }}>
-                  {!isNightOff ? 'ON (1 meal)' : 'Cut (0 meals)'}
+                <div style={{ fontSize: '0.78rem', color: !isNightOff ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.15rem', fontWeight: 600 }}>
+                  {!isNightOff ? 'Taking (1 meal)' : 'Cut (0 meals)'}
                 </div>
               </div>
 
-              <div>
-                <button
-                  onClick={handleToggleNight}
-                  disabled={cutoff.isNightPastCutoff && activeRole !== 'manager'}
-                  className={`btn btn-sm ${!isNightOff ? 'btn-danger' : 'btn-primary'}`}
-                >
-                  {!isNightOff ? 'Cut Night' : 'Take Night'}
-                </button>
-              </div>
+              <button
+                onClick={handleToggleNight}
+                disabled={cutoff.isNightPastCutoff && activeRole !== 'manager'}
+                className={`btn btn-sm ${!isNightOff ? 'btn-danger' : 'btn-primary'}`}
+              >
+                {!isNightOff ? 'Cut' : 'Take'}
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ALL MEMBERS DAILY MATRIX TABLE */}
+      {/* DAILY MEALS SHEET (ALL MEMBERS) */}
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <div>
-            <h3>Member Meal Matrix ({selectedDate})</h3>
-            <p>Breakdown of Afternoon & Night meals per member</p>
+            <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Members Daily Sheet</h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedDate}</span>
           </div>
 
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Total Meals on {selectedDate}:{' '}
-            <strong style={{ color: 'var(--brand-primary)', fontSize: '1.05rem' }}>
-              {isBeforeOpen
-                ? 0
-                : isNoCooking
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.85rem' }}>
+            <span>Total Meals:</span>
+            <strong style={{ fontSize: '1.15rem', color: isNoCooking ? 'var(--text-dim)' : 'var(--brand-primary)' }}>
+              {isNoCooking
                 ? 0
                 : (members.filter((m) => m.status === 'active').length > 0 ? members.filter((m) => m.status === 'active') : members).reduce((sum, mem) => {
                     const rec = mealRecords.find((r) => r.member_id === mem.user_id && r.date === selectedDate);
@@ -561,27 +618,28 @@ export const MealsPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <LoadingSpinner message="Loading member meal records..." />
+          <LoadingSpinner message="Loading records..." />
         ) : (
           <div className="table-responsive">
             <table className="table">
               <thead>
                 <tr>
                   <th>Member</th>
-                  <th>Afternoon Meal (Lunch)</th>
-                  <th>Night Meal (Dinner)</th>
-                  <th>Total Meals</th>
+                  <th>Afternoon</th>
+                  <th>Night</th>
+                  <th>Total</th>
                   <th>Status</th>
-                  <th>Correction Audit</th>
-                  {activeRole === 'manager' && <th style={{ textAlign: 'right' }}>Manager Action</th>}
+                  {activeRole === 'manager' && <th style={{ textAlign: 'right' }}>Action</th>}
                 </tr>
               </thead>
               <tbody>
                 {(members.filter((m) => m.status === 'active').length > 0 ? members.filter((m) => m.status === 'active') : members).map((mem) => {
                   const rec = mealRecords.find((r) => r.member_id === mem.user_id && r.date === selectedDate);
-                  const lOff = isBeforeOpen || isNoCooking || (rec ? (rec.lunch_turned_off || rec.is_turned_off) : false);
-                  const dOff = isBeforeOpen || isNoCooking || (rec ? (rec.dinner_turned_off || rec.is_turned_off) : false);
-                  const effectiveTotal = isBeforeOpen || isNoCooking ? 0 : (lOff ? 0 : (rec?.lunch_count ?? 1)) + (dOff ? 0 : (rec?.dinner_count ?? 1));
+                  const lOff = isBeforeOpen || isSystemOffForSelectedDate || isNoCooking || (rec ? (rec.lunch_turned_off || rec.is_turned_off) : false);
+                  const dOff = isBeforeOpen || isSystemOffForSelectedDate || isNoCooking || (rec ? (rec.dinner_turned_off || rec.is_turned_off) : false);
+                  const effectiveTotal = (isBeforeOpen || isSystemOffForSelectedDate || isNoCooking)
+                    ? 0
+                    : (lOff ? 0 : (rec?.lunch_count ?? 1)) + (dOff ? 0 : (rec?.dinner_count ?? 1));
                   const memberName = mem.profile?.full_name || rec?.member_name || mem.user_id;
 
                   return (
@@ -595,7 +653,9 @@ export const MealsPage: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        {isBeforeOpen ? (
+                        {isSystemOffForSelectedDate ? (
+                          <span className="badge badge-debt">OFF (0)</span>
+                        ) : isBeforeOpen ? (
                           <span className="badge badge-secondary">Not Open</span>
                         ) : isNoCooking ? (
                           <span className="badge badge-debt">No Cook</span>
@@ -606,7 +666,9 @@ export const MealsPage: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        {isBeforeOpen ? (
+                        {isSystemOffForSelectedDate ? (
+                          <span className="badge badge-debt">OFF (0)</span>
+                        ) : isBeforeOpen ? (
                           <span className="badge badge-secondary">Not Open</span>
                         ) : isNoCooking ? (
                           <span className="badge badge-debt">No Cook</span>
@@ -617,32 +679,19 @@ export const MealsPage: React.FC = () => {
                         )}
                       </td>
                       <td style={{ fontWeight: 800, color: effectiveTotal > 0 ? 'var(--brand-primary)' : 'var(--text-dim)' }}>
-                        {effectiveTotal} meals
+                        {effectiveTotal}
                       </td>
                       <td>
-                        {isBeforeOpen ? (
-                          <span className="badge badge-secondary">Not Open Yet</span>
+                        {isSystemOffForSelectedDate ? (
+                          <span className="badge badge-debt">System OFF</span>
+                        ) : isBeforeOpen ? (
+                          <span className="badge badge-secondary">Not Open</span>
                         ) : isNoCooking ? (
-                          <span className="badge badge-debt">Kitchen Closed</span>
-                        ) : isFutureDate ? (
-                          <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                            Upcoming ({effectiveTotal})
-                          </span>
+                          <span className="badge badge-debt">No Cook</span>
                         ) : effectiveTotal === 0 ? (
-                          <span className="badge badge-debt">Full Off</span>
-                        ) : effectiveTotal === 1 ? (
-                          <span className="badge badge-warning">1 Meal</span>
+                          <span className="badge badge-debt">Cut (0)</span>
                         ) : (
-                          <span className="badge badge-credit">2 Meals</span>
-                        )}
-                      </td>
-                      <td>
-                        {rec?.is_post_cutoff_change ? (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-amber)' }}>
-                            Corrected: {rec.change_reason || ''}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Regular</span>
+                          <span className="badge badge-credit">{effectiveTotal} Meals</span>
                         )}
                       </td>
 
@@ -662,7 +711,7 @@ export const MealsPage: React.FC = () => {
                               setEditingMemberName(memberName);
                               setShowPostCutoffModal(true);
                             }}
-                            disabled={isBeforeOpen}
+                            disabled={isBeforeOpen || isSystemOffForSelectedDate}
                             className="btn btn-secondary btn-sm"
                           >
                             <Edit2 size={13} /> Edit

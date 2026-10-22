@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Sparkles,
   CalendarCheck,
+  Info,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { useAuth } from '../context/AuthContext';
@@ -88,8 +89,9 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalFixedCost = fixedCosts.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
-  const perMemberFixedCost = Math.round((totalFixedCost / memberCount) * 100) / 100;
+  // Fixed costs are per-person amounts fixed for all members
+  const perMemberFixedCost = fixedCosts.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+  const totalFixedCost = Math.round((perMemberFixedCost * memberCount) * 100) / 100;
   const totalHouseRent = Object.values(memberRents).reduce((sum, r) => sum + (Number(r) || 0), 0);
 
   const handleAddFixedCost = () => {
@@ -158,7 +160,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Monthly Fixed Costs & House Rent</h2>
             </div>
             <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-              Period: <strong style={{ color: 'var(--text-main)' }}>{period}</strong> • Fixed costs are split equally; room rent varies per member.
+              Period: <strong style={{ color: 'var(--text-main)' }}>{period}</strong> • Fixed costs are set per person (fix for all members); house rent varies per member.
             </p>
           </div>
           <button onClick={onClose} className="btn-icon" style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
@@ -184,7 +186,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
               <CalendarCheck size={16} /> Meal System Open Date for {period}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-              Meals count day by day from this date up to today. Days before this date & future days are not charged in advance.
+              Meals count day by day starting from this date.
             </div>
           </div>
           <div style={{ minWidth: '150px' }}>
@@ -206,7 +208,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
             className={`btn btn-sm ${activeTab === 'fixed' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, border: 'none' }}
           >
-            <Receipt size={14} /> Shared Fixed Costs (Equal for All)
+            <Receipt size={14} /> Fixed Bills (Per Person Cost)
           </button>
           <button
             type="button"
@@ -214,7 +216,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
             className={`btn btn-sm ${activeTab === 'rent' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, border: 'none' }}
           >
-            <Home size={14} /> House Rent (Varies Per Member)
+            <Home size={14} /> House Rent (Individual Per Member)
           </button>
         </div>
 
@@ -238,7 +240,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                 border: '1px solid rgba(16, 185, 129, 0.3)',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.85rem 1rem',
-                marginBottom: '1rem',
+                marginBottom: '0.85rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -247,20 +249,45 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
               }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Total Shared Fixed Costs
+                    Fixed Cost Per Member (Fix for All)
                   </div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brand-primary)' }}>
-                    {formatCurrency(totalFixedCost, settings?.currency_symbol)}
+                    {formatCurrency(perMemberFixedCost, settings?.currency_symbol)} / person
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+                    Each member pays this exact fixed amount
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Equal Share Per Member ({memberCount} members)
+                    Total Mess Fixed Fund ({memberCount} members)
                   </div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-teal)' }}>
-                    {formatCurrency(perMemberFixedCost, settings?.currency_symbol)} / person
+                    {formatCurrency(totalFixedCost, settings?.currency_symbol)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+                    ({formatCurrency(perMemberFixedCost, settings?.currency_symbol)} × {memberCount} members)
                   </div>
                 </div>
+              </div>
+
+              {/* Informative Guidance Banner */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.65rem 0.85rem',
+                marginBottom: '1rem',
+                fontSize: '0.8rem',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <Info size={16} color="#60a5fa" />
+                <span>
+                  <strong>Per-Person Fixed Cost:</strong> Enter each bill amount <strong>per member</strong>. This cost is fixed and charged identically to every member (Cook, WiFi, Utilities, etc.).
+                </span>
               </div>
 
               {/* Items List */}
@@ -300,7 +327,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                       <option value="cleaning">Cleaning Supplies</option>
                       <option value="other">Other Fixed Bill</option>
                     </select>
-                    <div style={{ position: 'relative', width: '120px' }}>
+                    <div style={{ position: 'relative', width: '135px' }}>
                       <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                         {settings?.currency_symbol || '৳'}
                       </span>
@@ -309,10 +336,11 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                         min="0"
                         step="any"
                         className="form-control"
-                        placeholder="0.00"
+                        placeholder="Per person"
                         value={item.amount === 0 ? '' : item.amount}
                         onChange={(e) => handleUpdateFixedCost(idx, 'amount', parseFloat(e.target.value) || 0)}
                         style={{ padding: '0.45rem 0.5rem 0.45rem 1.6rem', fontSize: '0.85rem', textAlign: 'right' }}
+                        title="Fixed cost per person (same for every member)"
                       />
                     </div>
                     <button

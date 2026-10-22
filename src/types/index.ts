@@ -68,6 +68,8 @@ export interface SystemSettings {
   allow_custom_meals: boolean;
   auto_assign_meals: boolean;
   meal_start_date?: string | null; // Date when mess meals started / opened (YYYY-MM-DD)
+  is_meal_system_off?: boolean;    // When true, meal system is fully turned off (0 meals)
+  meal_system_off_date?: string | null; // Date when the system was turned off (YYYY-MM-DD)
   updated_at?: string;
 }
 

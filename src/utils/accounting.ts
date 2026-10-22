@@ -151,6 +151,7 @@ export function getBalanceStatus(balance: number): 'credit' | 'debt' | 'settled'
  */
 export function computeEffectiveMealCount(params: {
   cookingStatus: 'cooking' | 'no_cooking' | 'pending';
+  isSystemOff?: boolean; // When manager fully turns off the meal system
   isTurnedOff?: boolean;
   lunchTurnedOff?: boolean;
   dinnerTurnedOff?: boolean;
@@ -159,6 +160,10 @@ export function computeEffectiveMealCount(params: {
   mealCount?: number;
   defaultMeals?: number;
 }): number {
+  // If the entire meal system is turned off, all meals are 0
+  if (params.isSystemOff) {
+    return 0;
+  }
   // A no-cooking day ALWAYS overrides and results in 0 meals charged
   if (params.cookingStatus === 'no_cooking') {
     return 0;

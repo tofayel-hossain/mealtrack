@@ -241,12 +241,12 @@ export const AccountingPage: React.FC = () => {
             </div>
 
             <div className="card">
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shared Fixed Costs</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fixed Bills (Per Member)</span>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-teal)', margin: '0.2rem 0' }}>
-                {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
+                {formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>
-                {formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / person
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                Mess Total: {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)} ({accounting?.members.length ?? 1} members)
               </div>
             </div>
 
@@ -267,7 +267,7 @@ export const AccountingPage: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Receipt size={16} color="var(--accent-teal)" />
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Monthly Shared Fixed Costs (Fixed & Split Equally for All)</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Monthly Fixed Costs (Fix Per Person for All Members)</span>
                 </div>
                 {activeRole === 'manager' && (
                   <button onClick={() => setShowCostsModal(true)} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}>
@@ -292,7 +292,7 @@ export const AccountingPage: React.FC = () => {
                     }}
                   >
                     <span style={{ color: 'var(--text-muted)' }}>{fc.title}:</span>
-                    <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(fc.amount, settings?.currency_symbol)}</strong>
+                    <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(fc.amount, settings?.currency_symbol)} / person</strong>
                   </div>
                 ))}
                 <div
@@ -308,7 +308,7 @@ export const AccountingPage: React.FC = () => {
                     marginLeft: 'auto',
                   }}
                 >
-                  <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>Each Member's Share:</span>
+                  <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>Fixed Cost Per Member:</span>
                   <strong>{formatCurrency(accounting.per_member_fixed_cost, settings?.currency_symbol)}</strong>
                 </div>
               </div>

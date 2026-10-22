@@ -2,13 +2,14 @@
 -- MEALTRACK: MONTHLY FIXED COSTS & MEMBER HOUSE RENT SCHEMA
 -- ==============================================================================
 
--- 1. Monthly Fixed Shared Costs (Cook, WiFi, Electricity, Gas, Waste, etc.)
+-- 1. Monthly Fixed Costs - Per-Person Fixed for All Members (Cook, WiFi, Electricity, Gas, Waste, etc.)
+-- The amount represents the per-person cost for each line item (identical for every active member)
 CREATE TABLE IF NOT EXISTS public.monthly_fixed_costs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     system_id UUID NOT NULL REFERENCES public.meal_systems(id) ON DELETE CASCADE,
     period TEXT NOT NULL, -- Format: YYYY-MM
     title TEXT NOT NULL,  -- e.g. 'Cook (Khala) Bill', 'WiFi Internet', 'Electricity', 'Gas'
-    amount NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    amount NUMERIC(12,2) NOT NULL DEFAULT 0.00, -- Per person amount (fix for all members)
     category TEXT NOT NULL DEFAULT 'utility', -- 'cook', 'wifi', 'electricity', 'gas', 'waste', 'cleaning', 'other'
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())

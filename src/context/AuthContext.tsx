@@ -9,6 +9,9 @@ interface AuthContextType {
   signIn: (email: string, password?: string) => Promise<void>;
   signUp: (email: string, password?: string, fullName?: string, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (fullName: string, phone?: string) => Promise<void>;
+  updatePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -209,6 +212,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateProfile = async (fullName: string, phone?: string) => {
+    if (!user) throw new Error('You must be signed in to update your profile.');
+    const cleanName = fullName.trim();
+    if (!cleanName) throw new Error('Full name cannot be empty.');
+    const cleanPhone = phone ? phone.trim() : null;
+
+    if (isSupabaseConfigured && supabase) {
+      // 1. Update Supabase Auth user metadata
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+          },
+        });
+      } catch (e) {
+        console.warn('Auth user metadata update warning:', e);
+      }
+
+      // 2. Update public.profiles row
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: cleanName,
+          phone: cleanPhone,
+          avatar_url: user.avatar_url || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (profileError) {
+        console.warn('Profiles upsert warning, attempting direct update:', profileError);
+        const { error: updateErr } = await supabase
+          .from('profiles')
+          .update({
+            full_name: cleanName,
+            phone: cleanPhone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (updateErr) {
+          throw new Error(updateErr.message || profileError.message);
+        }
+      }
+    }
+
+    // 3. Update React state and localStorage cache
+    const updatedUser: UserProfile = {
+      ...user,
+      full_name: cleanName,
+      phone: cleanPhone,
+    };
+    setUser(updatedUser);
+    localStorage.setItem('mealtrack_cached_user', JSON.stringify(updatedUser));
+  };
+
+  const updatePassword = async (newPassword: string, currentPassword?: string) => {
+    if (!user) throw new Error('You must be signed in to change your password.');
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('New password must be at least 6 characters long.');
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      // If current password provided, verify it first for security
+      if (currentPassword && user.email) {
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: currentPassword,
+        });
+        if (verifyError) {
+          throw new Error('Current password is incorrect. Please check and try again.');
+        }
+      }
+
+      // Update password in Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update password.');
+      }
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!email) throw new Error('Please enter your email address.');
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/profile`,
+      });
+      if (error) throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -218,6 +317,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         signOut,
+        updateProfile,
+        updatePassword,
+        resetPassword,
       }}
     >
       {children}

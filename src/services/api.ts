@@ -313,6 +313,22 @@ export async function updateSystemSettings(
   return updated;
 }
 
+export async function toggleMealSystemActiveStatus(
+  systemId: string,
+  isOff: boolean,
+  actorId: string
+): Promise<SystemSettings> {
+  const todayStr = getDhakaTodayDateString();
+  return updateSystemSettings(
+    systemId,
+    {
+      is_meal_system_off: isOff,
+      meal_system_off_date: isOff ? todayStr : null,
+    },
+    actorId
+  );
+}
+
 export async function getSystemMembers(systemId: string): Promise<SystemMembership[]> {
   if (isSupabaseConfigured && supabase) {
     const { data } = await supabase
@@ -515,6 +531,92 @@ export async function acceptSystemInvitation(
     joined_at: new Date().toISOString(),
   });
   return { system_id: inv.system_id };
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: { full_name: string; phone?: string | null }
+): Promise<UserProfile> {
+  const cleanName = updates.full_name.trim();
+  const cleanPhone = updates.phone ? updates.phone.trim() : null;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.auth.updateUser({
+        data: { full_name: cleanName, phone: cleanPhone },
+      });
+    } catch (e) {
+      console.warn('Auth user metadata update warning:', e);
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: userId,
+        full_name: cleanName,
+        phone: cleanPhone,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (profileError) {
+      await supabase
+        .from('profiles')
+        .update({
+          full_name: cleanName,
+          phone: cleanPhone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+    }
+  }
+
+  const existing = store.profiles.find((p) => p.id === userId);
+  if (existing) {
+    existing.full_name = cleanName;
+    existing.phone = cleanPhone;
+  } else {
+    store.profiles.push({
+      id: userId,
+      full_name: cleanName,
+      phone: cleanPhone,
+    });
+  }
+
+  return {
+    id: userId,
+    full_name: cleanName,
+    phone: cleanPhone,
+  };
+}
+
+export async function changeUserPassword(
+  email: string | undefined,
+  newPassword: string,
+  currentPassword?: string
+): Promise<void> {
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('New password must be at least 6 characters long.');
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    if (currentPassword && email) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+      if (signInError) {
+        throw new Error('Current password is incorrect. Please check and try again.');
+      }
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      throw new Error(updateError.message || 'Failed to update password.');
+    }
+  }
 }
 
 export async function getSystemInvitations(systemId: string): Promise<SystemInvitation[]> {
@@ -1301,11 +1403,13 @@ export async function getMonthlyCostsConfig(
 
   const members = await getSystemMembers(systemId);
   const activeMembersCount = members.filter((m) => m.status === 'active').length || members.length || 1;
-  const totalFixedCost = roundToDecimals(
+  // Fixed costs are entered as per-person cost fix for all members (not divided)
+  const perMemberFixedCost = roundToDecimals(
     fixedCosts.reduce((sum, f) => sum + (Number(f.amount) || 0), 0),
     2
   );
-  const perMemberFixedCost = roundToDecimals(totalFixedCost / activeMembersCount, 2);
+  // Total fixed cost for the mess = per-person fixed cost × active members count
+  const totalFixedCost = roundToDecimals(perMemberFixedCost * activeMembersCount, 2);
 
   return {
     period,
@@ -1484,8 +1588,14 @@ export async function getMonthlyAccountingSummary(
         (r) => r.member_id === mem.user_id && r.date === dateStr
       );
 
+      const isSystemOffForDate = Boolean(
+        settings?.is_meal_system_off &&
+        (!settings?.meal_system_off_date || dateStr >= settings.meal_system_off_date)
+      );
+
       const effective = computeEffectiveMealCount({
         cookingStatus: cStatus,
+        isSystemOff: isSystemOffForDate,
         isTurnedOff: record?.is_turned_off,
         lunchTurnedOff: record?.lunch_turned_off,
         dinnerTurnedOff: record?.dinner_turned_off,

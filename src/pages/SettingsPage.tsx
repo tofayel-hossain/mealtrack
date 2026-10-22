@@ -29,6 +29,7 @@ export const SettingsPage: React.FC = () => {
   const [allowCustomMeals, setAllowCustomMeals] = useState(false);
   const [autoAssignMeals, setAutoAssignMeals] = useState(false);
   const [mealStartDate, setMealStartDate] = useState('');
+  const [isMealSystemOff, setIsMealSystemOff] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export const SettingsPage: React.FC = () => {
       setAllowCustomMeals(settings.allow_custom_meals ?? false);
       setAutoAssignMeals(settings.auto_assign_meals ?? false);
       setMealStartDate(settings.meal_start_date || (activeSystem?.created_at ? activeSystem.created_at.slice(0, 10) : ''));
+      setIsMealSystemOff(settings.is_meal_system_off ?? false);
     }
   }, [settings, activeSystem?.created_at]);
 
@@ -71,6 +73,8 @@ export const SettingsPage: React.FC = () => {
           allow_custom_meals: allowCustomMeals,
           auto_assign_meals: autoAssignMeals,
           meal_start_date: mealStartDate || null,
+          is_meal_system_off: isMealSystemOff,
+          meal_system_off_date: isMealSystemOff ? (settings?.meal_system_off_date || new Date().toISOString().slice(0, 10)) : null,
         },
         user.id
       );
@@ -209,6 +213,18 @@ export const SettingsPage: React.FC = () => {
               />
               <span style={{ fontSize: '0.875rem', color: 'var(--text-main)' }}>
                 Auto assign default meals
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: activeRole === 'manager' ? 'pointer' : 'default', marginTop: '0.25rem' }}>
+              <input
+                type="checkbox"
+                checked={isMealSystemOff}
+                onChange={(e) => setIsMealSystemOff(e.target.checked)}
+                disabled={activeRole !== 'manager'}
+              />
+              <span style={{ fontSize: '0.875rem', fontWeight: isMealSystemOff ? 700 : 500, color: isMealSystemOff ? 'var(--color-debt)' : 'var(--text-main)' }}>
+                Turn OFF Meal System (all meals will count as 0 until opened)
               </span>
             </label>
           </div>

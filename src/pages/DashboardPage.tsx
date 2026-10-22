@@ -20,6 +20,8 @@ import {
   Home,
   Settings2,
   Receipt,
+  Power,
+  PowerOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMealSystem } from '../context/MealSystemContext';
@@ -37,6 +39,7 @@ import {
   getDailyMealRecords,
   saveDailyMealRecord,
   getFinancialLedger,
+  toggleMealSystemActiveStatus,
 } from '../services/api';
 import type {
   MonthlyAccountingSummary,
@@ -104,7 +107,30 @@ export const DashboardPage: React.FC = () => {
     (m) => m.member_id === user?.id
   );
 
-  const isNoCooking = todayCooking?.status === 'no_cooking';
+  const [togglingSystem, setTogglingSystem] = useState(false);
+  const isSystemMasterOff = Boolean(settings?.is_meal_system_off);
+  const isSystemOffToday = Boolean(
+    isSystemMasterOff &&
+    (!settings?.meal_system_off_date || todayStr >= settings.meal_system_off_date)
+  );
+
+  const isNoCooking = isSystemOffToday || todayCooking?.status === 'no_cooking';
+
+  const handleToggleSystemOff = async () => {
+    if (!activeSystem || !user || activeRole !== 'manager') return;
+    const newOff = !isSystemMasterOff;
+
+    try {
+      setTogglingSystem(true);
+      await toggleMealSystemActiveStatus(activeSystem.id, newOff, user.id);
+      await refreshSystemData();
+      await loadDashboardData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update meal system status');
+    } finally {
+      setTogglingSystem(false);
+    }
+  };
 
   // Slot states
   const isAfternoonOff = isNoCooking || (todayMealRecord?.lunch_turned_off ?? todayMealRecord?.is_turned_off ?? false);
@@ -114,6 +140,10 @@ export const DashboardPage: React.FC = () => {
   // Toggle Afternoon (Lunch) meal
   const handleToggleAfternoon = async () => {
     if (!activeSystem || !user) return;
+    if (isSystemOffToday) {
+      alert('Meal system is fully turned off. Meals remain 0 until opened.');
+      return;
+    }
     if (isNoCooking) {
       alert('Today is a No Cooking day.');
       return;
@@ -279,10 +309,59 @@ export const DashboardPage: React.FC = () => {
               <button onClick={() => setShowDepositModal(true)} className="btn btn-primary btn-sm">
                 <Wallet size={15} /> Log Deposit
               </button>
+              <button
+                onClick={handleToggleSystemOff}
+                disabled={togglingSystem}
+                className={`btn btn-sm ${isSystemMasterOff ? 'btn-primary' : 'btn-outline'}`}
+                style={isSystemMasterOff ? { fontWeight: 600 } : { borderColor: 'rgba(244, 63, 94, 0.4)', color: 'var(--color-debt)', fontWeight: 600 }}
+              >
+                {isSystemMasterOff ? (
+                  <>
+                    <Power size={14} /> Open Meal System
+                  </>
+                ) : (
+                  <>
+                    <PowerOff size={14} /> Turn Off Meal System
+                  </>
+                )}
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {/* SYSTEM OFF ALERT BANNER */}
+      {isSystemMasterOff && (
+        <div style={{
+          background: 'rgba(244, 63, 94, 0.08)',
+          border: '1px solid rgba(244, 63, 94, 0.3)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          marginBottom: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <PowerOff size={18} color="var(--color-debt)" />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-debt)' }}>
+              Meal System is OFF • All meals count as 0 until opened
+            </span>
+          </div>
+          {activeRole === 'manager' && (
+            <button
+              onClick={handleToggleSystemOff}
+              disabled={togglingSystem}
+              className="btn btn-primary btn-sm"
+              style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Power size={14} /> Open Meal System
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2-MEAL (AFTERNOON & NIGHT) HERO SECTION */}
       <div
@@ -301,13 +380,15 @@ export const DashboardPage: React.FC = () => {
               <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: isNoCooking ? 'var(--color-debt)' : 'var(--brand-primary)' }}>
                 Today: {formatDate(todayStr, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
-              <span className={`badge ${isNoCooking ? 'badge-debt' : 'badge-credit'}`}>
-                {isNoCooking ? 'No Cooking' : 'Cooking Today'}
+              <span className={`badge ${isSystemOffToday ? 'badge-debt' : isNoCooking ? 'badge-debt' : 'badge-credit'}`}>
+                {isSystemOffToday ? 'System OFF (0 Meals)' : isNoCooking ? 'No Cooking' : 'Cooking Today'}
               </span>
             </div>
 
             <h3 style={{ fontSize: '1.35rem', marginBottom: '0.35rem' }}>
-              {isNoCooking ? (
+              {isSystemOffToday ? (
+                <span style={{ color: 'var(--color-debt)' }}>Meal System is OFF (All Meals: 0)</span>
+              ) : isNoCooking ? (
                 'Cooking is cancelled for today. 0 meals charged.'
               ) : isFullMealOff ? (
                 <span style={{ color: 'var(--accent-rose)' }}>Full Meal Turned OFF (0 meals today)</span>
@@ -649,11 +730,12 @@ export const DashboardPage: React.FC = () => {
             />
 
             <StatCard
-              title="Shared Fixed Bills"
-              value={formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
-              subtitle={`${formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / member share`}
+              title="Fixed Bills (Per Member)"
+              value={formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)}
+              subtitle={`Mess Total: ${formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)} (${accounting?.members.length ?? 1} members)`}
               icon={Receipt}
               variant="info"
+              badgeText="PER PERSON"
             />
 
             <StatCard
@@ -701,7 +783,7 @@ export const DashboardPage: React.FC = () => {
                     <th>Meals ({accounting?.days_elapsed ?? 0}d)</th>
                     <th>Meal Cost</th>
                     <th>Bazar Done</th>
-                    <th>Shared Bills</th>
+                    <th>Fixed Bills (Per Person)</th>
                     <th>Room Rent</th>
                     <th>Total Billed</th>
                     <th>Deposits</th>
