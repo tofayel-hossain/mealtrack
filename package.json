@@ -1,5 +1,5 @@
 {
-  "name": "mealhisab",
+  "name": "mealtrack",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,7 +23,6 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.88.0",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4",
-    "vitest": "^5.0.5"
+    "vite": "^8.3.4"
   }
 }

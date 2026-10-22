@@ -1,5 +1,5 @@
 // ==============================================================================
-// MEAL HISAB: CORE ACCOUNTING MATHEMATICS ENGINE
+// MEALTRACK: CORE ACCOUNTING MATHEMATICS ENGINE
 // High-precision monetary and meal rate calculations for shared mess accounting.
 // ==============================================================================
 

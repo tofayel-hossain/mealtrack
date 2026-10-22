@@ -1,5 +1,5 @@
 // ==============================================================================
-// MEAL HISAB: PRODUCTION DATA ACCESS & SERVICE LAYER
+// MEALTRACK: PRODUCTION DATA ACCESS & SERVICE LAYER
 // Seamlessly interfaces with Supabase Auth, PostgreSQL DB, Storage, and RPCs.
 // Handles 2 meals (Afternoon & Night), individual slot cutoffs, and full meal cuts.
 // ==============================================================================

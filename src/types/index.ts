@@ -1,5 +1,5 @@
 // ==============================================================================
-// MEAL HISAB: DOMAIN TYPES & INTERFACES
+// MEALTRACK: DOMAIN TYPES & INTERFACES
 // ==============================================================================
 
 export type UserRole = 'manager' | 'member';

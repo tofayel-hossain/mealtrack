@@ -1,5 +1,5 @@
 // ==============================================================================
-// MEAL HISAB: CSV EXPORT UTILITY
+// MEALTRACK: CSV EXPORT UTILITY
 // Generates standardized, formatted CSV reports for transparency and audits.
 // ==============================================================================
 
@@ -34,7 +34,7 @@ function downloadCsv(csvContent: string, filename: string) {
  */
 export function exportBazarExpensesToCsv(
   expenses: BazarExpense[],
-  filename = 'meal-hisab-bazar-expenses.csv'
+  filename = 'mealtrack-bazar-expenses.csv'
 ) {
   const headers = [
     'Date',
@@ -75,7 +75,7 @@ export function exportMonthlySummaryToCsv(
   totalExpenses: number,
   totalMeals: number,
   mealRate: number | null,
-  filename = `meal-hisab-monthly-statement-${period}.csv`
+  filename = `mealtrack-monthly-statement-${period}.csv`
 ) {
   const meta = [
     ['Accounting Period', escapeCsv(period)],

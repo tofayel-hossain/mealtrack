@@ -67,7 +67,7 @@ export const AcceptInvitePage: React.FC = () => {
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Mess Invitation</h2>
           <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-            You have been invited to join a shared mess on Meal Hisab.
+            You have been invited to join a shared mess on MealTrack.
           </p>
 
           <div style={{

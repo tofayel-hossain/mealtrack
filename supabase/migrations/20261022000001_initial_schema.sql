@@ -1,5 +1,5 @@
 -- ==============================================================================
--- MEAL HISAB: PRODUCTION POSTGRESQL DATABASE SCHEMA & MIGRATIONS
+-- MEALTRACK: PRODUCTION POSTGRESQL DATABASE SCHEMA & MIGRATIONS
 -- ==============================================================================
 
 -- 1. EXTENSIONS & SETUP

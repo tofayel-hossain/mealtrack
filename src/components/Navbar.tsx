@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenCreateSys
             <UtensilsCrossed size={19} color="#ffffff" />
           </div>
           <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#ffffff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            Meal Hisab
+            MealTrack
           </div>
         </Link>
 

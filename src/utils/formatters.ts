@@ -1,5 +1,5 @@
 // ==============================================================================
-// MEAL HISAB: FORMATTERS & DATE/TIME UTILITIES
+// MEALTRACK: FORMATTERS & DATE/TIME UTILITIES
 // Asia/Dhaka default timezone, BDT (৳) currency, and 2-meal cutoff helpers
 // ==============================================================================
 

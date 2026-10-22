@@ -224,7 +224,7 @@ export const DashboardPage: React.FC = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <h1>{activeSystem?.name || 'Meal Hisab Dashboard'}</h1>
+            <h1>{activeSystem?.name || 'MealTrack Dashboard'}</h1>
             <span className={`badge badge-${activeRole}`}>{activeRole}</span>
           </div>
           <p style={{ marginTop: '0.2rem' }}>

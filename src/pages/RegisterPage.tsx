@@ -60,7 +60,7 @@ export const RegisterPage: React.FC = () => {
           }}>
             <UtensilsCrossed size={32} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.85rem', marginBottom: '0.2rem' }}>Meal Hisab</h1>
+          <h1 style={{ fontSize: '1.85rem', marginBottom: '0.2rem' }}>MealTrack</h1>
           <p style={{ fontSize: '0.9rem' }}>Create your shared mess accounting account</p>
         </div>
 

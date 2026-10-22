@@ -16,7 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
-      const cached = localStorage.getItem('mealhisab_cached_user');
+      const cached = localStorage.getItem('mealtrack_cached_user') || localStorage.getItem('mealhisab_cached_user');
       return cached ? JSON.parse(cached) : null;
     } catch {
       return null;
@@ -49,9 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 };
 
             setUser(currentUser);
-            localStorage.setItem('mealhisab_cached_user', JSON.stringify(currentUser));
+            localStorage.setItem('mealtrack_cached_user', JSON.stringify(currentUser));
           } else if (!session && isMounted) {
             setUser(null);
+            localStorage.removeItem('mealtrack_cached_user');
             localStorage.removeItem('mealhisab_cached_user');
           }
 
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (event === 'SIGNED_OUT') {
                 if (isMounted) {
                   setUser(null);
+                  localStorage.removeItem('mealtrack_cached_user');
                   localStorage.removeItem('mealhisab_cached_user');
                 }
                 return;
@@ -82,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     };
 
                 setUser(currentUser);
-                localStorage.setItem('mealhisab_cached_user', JSON.stringify(currentUser));
+                localStorage.setItem('mealtrack_cached_user', JSON.stringify(currentUser));
               }
             }
           );
@@ -96,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (isMounted) setLoading(false);
         }
       } else {
+        localStorage.removeItem('mealtrack_cached_user');
         localStorage.removeItem('mealhisab_cached_user');
         if (isMounted) {
           setUser(null);
@@ -197,6 +200,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem('mealtrack_cached_user');
+    localStorage.removeItem('mealtrack_active_system_id');
+    localStorage.removeItem('mealtrack_session_user');
     localStorage.removeItem('mealhisab_cached_user');
     localStorage.removeItem('mealhisab_active_system_id');
     localStorage.removeItem('mealhisab_session_user');

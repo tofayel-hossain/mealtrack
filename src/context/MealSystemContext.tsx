@@ -53,7 +53,7 @@ export const MealSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const userSystems = await getUserSystems(user.id);
       setSystems(userSystems);
 
-      const savedSysId = localStorage.getItem('mealhisab_active_system_id');
+      const savedSysId = localStorage.getItem('mealtrack_active_system_id') || localStorage.getItem('mealhisab_active_system_id');
       let currentSys = userSystems.find((s) => s.id === savedSysId);
       if (!currentSys) {
         currentSys = activeSystem && userSystems.some((s) => s.id === activeSystem.id)
@@ -62,7 +62,7 @@ export const MealSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       setActiveSystemState(currentSys);
       if (currentSys) {
-        localStorage.setItem('mealhisab_active_system_id', currentSys.id);
+        localStorage.setItem('mealtrack_active_system_id', currentSys.id);
       }
 
       if (currentSys) {
@@ -92,7 +92,7 @@ export const MealSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const setActiveSystem = async (system: MealSystem) => {
     setActiveSystemState(system);
-    localStorage.setItem('mealhisab_active_system_id', system.id);
+    localStorage.setItem('mealtrack_active_system_id', system.id);
     if (!user) return;
     try {
       const [sysSettings, sysMembers, sysNotifs] = await Promise.all([
