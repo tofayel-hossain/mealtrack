@@ -40,6 +40,8 @@ import {
   saveDailyMealRecord,
   getFinancialLedger,
   toggleMealSystemActiveStatus,
+  getBazarExpenses,
+  getBazarAssignments,
 } from '../services/api';
 import type {
   MonthlyAccountingSummary,
@@ -47,6 +49,7 @@ import type {
   CookingDay,
   DailyMealRecord,
   FinancialLedgerEntry,
+  BazarAssignment,
 } from '../types';
 
 export const DashboardPage: React.FC = () => {
@@ -59,6 +62,9 @@ export const DashboardPage: React.FC = () => {
   const [todayCooking, setTodayCooking] = useState<CookingDay | null>(null);
   const [todayMealRecord, setTodayMealRecord] = useState<DailyMealRecord | null>(null);
   const [recentLedger, setRecentLedger] = useState<FinancialLedgerEntry[]>([]);
+  const [pendingExpenseCount, setPendingExpenseCount] = useState<number>(0);
+  const [myPendingShoppingAssignment, setMyPendingShoppingAssignment] = useState<BazarAssignment | null>(null);
+  const [managerPendingAssignmentsCount, setManagerPendingAssignmentsCount] = useState<number>(0);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showCostsModal, setShowCostsModal] = useState(false);
@@ -77,17 +83,28 @@ export const DashboardPage: React.FC = () => {
     if (!activeSystem || !user) return;
     try {
       setLoading(true);
-      const [summary, cookingList, meals, ledger] = await Promise.all([
+      const [summary, cookingList, meals, ledger, expenses, assignments] = await Promise.all([
         getMonthlyAccountingSummary(activeSystem.id, currentPeriod),
         getCookingDays(activeSystem.id, todayStr, todayStr),
         getDailyMealRecords(activeSystem.id, todayStr, todayStr),
         getFinancialLedger(activeSystem.id, currentPeriod, user.id),
+        getBazarExpenses(activeSystem.id, currentPeriod),
+        getBazarAssignments(activeSystem.id, currentPeriod),
       ]);
 
       setAccounting(summary);
       setTodayCooking(cookingList[0] || null);
       setTodayMealRecord(meals.find((m) => m.member_id === user.id) || null);
       setRecentLedger(ledger.slice(0, 5));
+      setPendingExpenseCount(
+        expenses.filter((e) => !e.is_reversed && e.approval_status === 'pending').length
+      );
+      setMyPendingShoppingAssignment(
+        assignments.find((a) => a.assigned_to === user.id && (a.status === 'assigned' || a.status === 'rejected')) || null
+      );
+      setManagerPendingAssignmentsCount(
+        assignments.filter((a) => a.status === 'submitted' || (a.status === 'approved' && (a.remaining_balance || 0) > 0)).length
+      );
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -327,6 +344,102 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* MEMBER ASSIGNED BAZAR SHOPPING NOTICE */}
+      {myPendingShoppingAssignment && (
+        <div
+          style={{
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            marginBottom: '1.25rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--brand-primary)', fontSize: '0.9rem' }}>
+            <ShoppingBag size={18} />
+            <span>
+              Assigned Bazar: <strong>{formatCurrency(myPendingShoppingAssignment.assigned_amount)}</strong> assigned for shopping ({formatDate(myPendingShoppingAssignment.assigned_date)}).
+            </span>
+          </div>
+          <Link
+            to="/bazar"
+            className="btn btn-primary btn-sm"
+            style={{ fontSize: '0.8rem', padding: '0.3rem 0.75rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            Submit Report <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
+
+      {/* MANAGER ASSIGNED BAZAR REVIEWS NOTICE */}
+      {activeRole === 'manager' && managerPendingAssignmentsCount > 0 && (
+        <div
+          style={{
+            background: 'rgba(59, 130, 246, 0.12)',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            marginBottom: '1.25rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#60a5fa', fontSize: '0.9rem' }}>
+            <Clock size={18} />
+            <span>
+              <strong>{managerPendingAssignmentsCount}</strong> assigned bazar report{managerPendingAssignmentsCount > 1 ? 's' : ''} require review / return confirmation.
+            </span>
+          </div>
+          <Link
+            to="/bazar"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.8rem', padding: '0.3rem 0.75rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            Review <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
+
+      {/* PENDING EXPENSES ALERT BANNER FOR MANAGERS */}
+      {activeRole === 'manager' && pendingExpenseCount > 0 && (
+        <div
+          style={{
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            marginBottom: '1.25rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fbbf24', fontSize: '0.9rem' }}>
+            <Clock size={18} />
+            <span>
+              <strong>{pendingExpenseCount}</strong> pending expense{pendingExpenseCount > 1 ? 's' : ''} require approval
+            </span>
+          </div>
+          <Link
+            to="/bazar"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.8rem', padding: '0.3rem 0.75rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            Review <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
 
       {/* SYSTEM OFF ALERT BANNER */}
       {isSystemMasterOff && (

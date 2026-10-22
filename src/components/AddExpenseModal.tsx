@@ -30,7 +30,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { activeSystem, members } = useMealSystem();
+  const { activeSystem, members, activeRole } = useMealSystem();
   const { user } = useAuth();
 
   const [date, setDate] = useState<string>(getDhakaTodayDateString());
@@ -78,6 +78,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
       const categoryLabel = CATEGORIES.find((c) => c.value === category)?.label || 'Bazar';
       const finalDescription = description.trim() || categoryLabel;
+      const isManager = activeRole === 'manager';
 
       await recordBazarExpense({
         system_id: activeSystem.id,
@@ -91,6 +92,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         funding_source: fundingSource,
         receipt_url: receiptUrl,
         no_receipt_reason: null,
+        isManager,
       });
 
       onSuccess();
@@ -106,7 +108,23 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.1rem' }}>Add Expense</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Add Expense</h3>
+            {activeRole !== 'manager' && (
+              <span
+                className="badge"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: '#fbbf24',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  fontSize: '0.725rem',
+                  padding: '0.15rem 0.45rem',
+                }}
+              >
+                Approval Needed
+              </span>
+            )}
+          </div>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
           </button>

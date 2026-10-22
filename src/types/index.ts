@@ -127,6 +127,51 @@ export interface DailyMealRecord {
   member_name?: string;
 }
 
+export type ExpenseApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export type AssignmentStatus =
+  | 'assigned'
+  | 'submitted'
+  | 'approved'
+  | 'rejected'
+  | 'completed';
+
+export interface BazarItem {
+  id: string;
+  item_name: string;
+  quantity?: string;
+  unit_price?: number;
+  price: number;
+}
+
+export interface BazarAssignment {
+  id: string;
+  system_id: string;
+  assigned_to: string;
+  assigned_by: string;
+  assigned_amount: number;
+  assigned_date: string; // YYYY-MM-DD
+  note?: string | null;
+  status: AssignmentStatus;
+  items?: BazarItem[];
+  total_spent?: number;
+  remaining_balance?: number;
+  submitted_at?: string | null;
+  submission_note?: string | null;
+  receipt_url?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  returned_amount?: number;
+  return_confirmed_by?: string | null;
+  return_confirmed_at?: string | null;
+  expense_id?: string | null;
+  created_at: string;
+  updated_at?: string;
+  member_name?: string;
+  manager_name?: string;
+}
+
 export interface BazarExpense {
   id: string;
   system_id: string;
@@ -144,6 +189,11 @@ export interface BazarExpense {
   reversal_reason?: string | null;
   reversed_at?: string | null;
   reversed_by?: string | null;
+  approval_status?: ExpenseApprovalStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+  assignment_id?: string | null;
   created_at: string;
   purchaser_name?: string;
 }

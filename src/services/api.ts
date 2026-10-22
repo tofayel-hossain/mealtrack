@@ -14,6 +14,10 @@ import type {
   CookingDay,
   DailyMealRecord,
   BazarExpense,
+  ExpenseApprovalStatus,
+  BazarAssignment,
+  BazarItem,
+  AssignmentStatus,
   Deposit,
   FinancialLedgerEntry,
   MonthlyAccountingSummary,
@@ -48,6 +52,7 @@ const store = {
   cookingDays: [] as CookingDay[],
   mealRecords: [] as DailyMealRecord[],
   bazarExpenses: [] as BazarExpense[],
+  bazarAssignments: [] as BazarAssignment[],
   deposits: [] as Deposit[],
   ledger: [] as FinancialLedgerEntry[],
   snapshots: [] as MonthlyReportSnapshot[],
@@ -968,59 +973,80 @@ export async function getBazarExpenses(
 }
 
 export async function recordBazarExpense(
-  data: Omit<BazarExpense, 'id' | 'created_at' | 'is_reversed'>
+  data: Omit<BazarExpense, 'id' | 'created_at' | 'is_reversed'> & { isManager?: boolean }
 ): Promise<BazarExpense> {
+  const isManager = Boolean(data.isManager);
+  const status: ExpenseApprovalStatus = data.approval_status || (isManager ? 'approved' : 'pending');
+  const approvedBy = status === 'approved' ? (data.approved_by || data.created_by) : null;
+  const approvedAt = status === 'approved' ? (data.approved_at || new Date().toISOString()) : null;
+
+  let createdId = 'exp-' + Date.now();
+
   if (isSupabaseConfigured && supabase) {
     let rpcDone = false;
-    try {
-      const { error } = await supabase.rpc('record_bazar_expense_tx', {
-        p_system_id: data.system_id,
-        p_date: data.date,
-        p_category: data.category,
-        p_description: data.description,
-        p_amount: data.amount,
-        p_shop_name: data.shop_name || null,
-        p_purchaser_id: data.purchaser_id,
-        p_funding_source: data.funding_source,
-        p_receipt_url: data.receipt_url || null,
-        p_no_receipt_reason: data.no_receipt_reason || null,
-      });
+    // Only call record_bazar_expense_tx if already approved (e.g. manager)
+    if (status === 'approved') {
+      try {
+        const { data: txId, error } = await supabase.rpc('record_bazar_expense_tx', {
+          p_system_id: data.system_id,
+          p_date: data.date,
+          p_category: data.category,
+          p_description: data.description,
+          p_amount: data.amount,
+          p_shop_name: data.shop_name || null,
+          p_purchaser_id: data.purchaser_id,
+          p_funding_source: data.funding_source,
+          p_receipt_url: data.receipt_url || null,
+          p_no_receipt_reason: data.no_receipt_reason || null,
+        });
 
-      if (!error) {
-        rpcDone = true;
-      } else if (!error.message?.includes('function') && !error.message?.includes('does not exist')) {
-        throw error;
-      }
-    } catch (rpcErr: any) {
-      if (rpcErr?.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('does not exist')) {
-        throw rpcErr;
+        if (!error) {
+          rpcDone = true;
+          if (txId) createdId = txId;
+        } else if (!error.message?.includes('function') && !error.message?.includes('does not exist')) {
+          throw error;
+        }
+      } catch (rpcErr: any) {
+        if (rpcErr?.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('does not exist')) {
+          throw rpcErr;
+        }
       }
     }
 
     if (!rpcDone) {
-      const { error: insertError } = await supabase.from('bazar_expenses').insert({
-        system_id: data.system_id,
-        date: data.date,
-        category: data.category,
-        description: data.description,
-        amount: data.amount,
-        shop_name: data.shop_name || null,
-        purchaser_id: data.purchaser_id,
-        created_by: data.created_by,
-        funding_source: data.funding_source,
-        receipt_url: data.receipt_url || null,
-        no_receipt_reason: data.no_receipt_reason || null,
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from('bazar_expenses')
+        .insert({
+          system_id: data.system_id,
+          date: data.date,
+          category: data.category,
+          description: data.description,
+          amount: data.amount,
+          shop_name: data.shop_name || null,
+          purchaser_id: data.purchaser_id,
+          created_by: data.created_by,
+          funding_source: data.funding_source,
+          receipt_url: data.receipt_url || null,
+          no_receipt_reason: data.no_receipt_reason || null,
+          approval_status: status,
+          approved_by: approvedBy,
+          approved_at: approvedAt,
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+      if (inserted?.id) createdId = inserted.id;
 
-      if (data.funding_source === 'personal_credit') {
+      // ONLY insert ledger credit for personal funds IF approved!
+      if (status === 'approved' && data.funding_source === 'personal_credit') {
         const period = data.date.slice(0, 7);
         await supabase.from('financial_ledger').insert({
           system_id: data.system_id,
           member_id: data.purchaser_id,
           transaction_type: 'personal_bazar_credit',
           amount: data.amount,
+          reference_id: createdId,
           accounting_period: period,
           date: data.date,
           description: `Personal Bazar Credit: ${data.description}`,
@@ -1032,13 +1058,18 @@ export async function recordBazarExpense(
 
   const newExpense: BazarExpense = {
     ...data,
-    id: 'exp-' + Date.now(),
+    id: createdId,
+    approval_status: status,
+    approved_by: approvedBy,
+    approved_at: approvedAt,
+    rejection_reason: null,
     is_reversed: false,
     created_at: new Date().toISOString(),
   };
   store.bazarExpenses.unshift(newExpense);
 
-  if (data.funding_source === 'personal_credit') {
+  // ONLY credit personal balance in store ledger if approved!
+  if (status === 'approved' && data.funding_source === 'personal_credit') {
     const period = data.date.slice(0, 7);
     store.ledger.push({
       id: 'led-' + Date.now(),
@@ -1066,11 +1097,182 @@ export async function recordBazarExpense(
       category: data.category,
       funding_source: data.funding_source,
       purchaser_id: data.purchaser_id,
+      approval_status: status,
     },
-    reason: `Expense added: ${data.description}`,
+    reason: `Expense added (${status}): ${data.description}`,
   });
 
   return newExpense;
+}
+
+export async function approveBazarExpense(
+  expenseId: string,
+  managerId: string
+): Promise<void> {
+  const exp = store.bazarExpenses.find((e) => e.id === expenseId);
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    let rpcSuccess = false;
+    try {
+      const { error } = await supabase.rpc('approve_bazar_expense', {
+        p_expense_id: expenseId,
+        p_manager_id: managerId,
+      });
+      if (!error) {
+        rpcSuccess = true;
+      }
+    } catch {
+      // fallback to direct table update
+    }
+
+    if (!rpcSuccess) {
+      const { data: updatedExp, error: updateErr } = await supabase
+        .from('bazar_expenses')
+        .update({
+          approval_status: 'approved',
+          approved_by: managerId,
+          approved_at: now,
+          rejection_reason: null,
+        })
+        .eq('id', expenseId)
+        .select()
+        .single();
+
+      if (updateErr) throw updateErr;
+
+      const current = updatedExp || exp;
+      if (current && current.funding_source === 'personal_credit') {
+        const period = current.date.slice(0, 7);
+        const { data: existingLedger } = await supabase
+          .from('financial_ledger')
+          .select('id')
+          .eq('reference_id', expenseId)
+          .maybeSingle();
+
+        if (!existingLedger) {
+          await supabase.from('financial_ledger').insert({
+            system_id: current.system_id,
+            member_id: current.purchaser_id,
+            transaction_type: 'personal_bazar_credit',
+            amount: current.amount,
+            reference_id: expenseId,
+            accounting_period: period,
+            date: current.date,
+            description: `Personal Bazar Credit: ${current.description}`,
+            created_by: managerId,
+          });
+        }
+      }
+    }
+  }
+
+  if (exp) {
+    exp.approval_status = 'approved';
+    exp.approved_by = managerId;
+    exp.approved_at = now;
+    exp.rejection_reason = undefined;
+
+    if (exp.funding_source === 'personal_credit') {
+      const existingInStore = store.ledger.find((l) => l.reference_id === exp.id);
+      if (!existingInStore) {
+        const period = exp.date.slice(0, 7);
+        store.ledger.push({
+          id: 'led-' + Date.now(),
+          system_id: exp.system_id,
+          member_id: exp.purchaser_id,
+          transaction_type: 'personal_bazar_credit',
+          amount: exp.amount,
+          reference_id: exp.id,
+          accounting_period: period,
+          date: exp.date,
+          description: `Personal Bazar Credit: ${exp.description}`,
+          created_by: managerId,
+          created_at: now,
+        });
+      }
+    }
+
+    await logAuditAction({
+      systemId: exp.system_id,
+      actorId: managerId,
+      actionType: 'EXPENSE_APPROVED',
+      targetType: 'bazar_expenses',
+      targetId: exp.id,
+      newValue: { approval_status: 'approved', approved_by: managerId, approved_at: now },
+      reason: `Expense approved: ${exp.description}`,
+    });
+  }
+}
+
+export async function rejectBazarExpense(
+  expenseId: string,
+  managerId: string,
+  reason?: string
+): Promise<void> {
+  const exp = store.bazarExpenses.find((e) => e.id === expenseId);
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    let rpcSuccess = false;
+    try {
+      const { error } = await supabase.rpc('reject_bazar_expense', {
+        p_expense_id: expenseId,
+        p_manager_id: managerId,
+        p_reason: reason || null,
+      });
+      if (!error) {
+        rpcSuccess = true;
+      }
+    } catch {
+      // fallback
+    }
+
+    if (!rpcSuccess) {
+      const { error: updateErr } = await supabase
+        .from('bazar_expenses')
+        .update({
+          approval_status: 'rejected',
+          approved_by: managerId,
+          approved_at: now,
+          rejection_reason: reason || null,
+        })
+        .eq('id', expenseId);
+
+      if (updateErr) throw updateErr;
+
+      // Remove any ledger entry if present
+      await supabase
+        .from('financial_ledger')
+        .delete()
+        .eq('reference_id', expenseId)
+        .eq('transaction_type', 'personal_bazar_credit');
+    }
+  }
+
+  if (exp) {
+    exp.approval_status = 'rejected';
+    exp.approved_by = managerId;
+    exp.approved_at = now;
+    exp.rejection_reason = reason || null;
+
+    const ledIdx = store.ledger.findIndex(
+      (l) => l.reference_id === exp.id && l.transaction_type === 'personal_bazar_credit'
+    );
+    if (ledIdx !== -1) {
+      store.ledger.splice(ledIdx, 1);
+    }
+
+    await logAuditAction({
+      systemId: exp.system_id,
+      actorId: managerId,
+      actionType: 'EXPENSE_REJECTED',
+      targetType: 'bazar_expenses',
+      targetId: exp.id,
+      newValue: { approval_status: 'rejected', rejection_reason: reason || null },
+      reason: reason ? `Expense rejected: ${reason}` : 'Expense rejected',
+    });
+  }
 }
 
 export async function reverseBazarExpense(
@@ -1094,7 +1296,7 @@ export async function reverseBazarExpense(
   exp.reversed_at = new Date().toISOString();
   exp.reversed_by = actorId;
 
-  if (exp.funding_source === 'personal_credit') {
+  if (exp.funding_source === 'personal_credit' && exp.approval_status !== 'rejected') {
     store.ledger.push({
       id: 'led-rev-' + Date.now(),
       system_id: exp.system_id,
@@ -1120,6 +1322,335 @@ export async function reverseBazarExpense(
     newValue: { amount: exp.amount, is_reversed: true },
     reason,
   });
+}
+
+// -----------------------------------------------------------------------------
+// BAZAR ASSIGNMENTS, EXPENSE REPORTING & MONEY RETURN WORKFLOW
+// -----------------------------------------------------------------------------
+
+export async function getBazarAssignments(
+  systemId: string,
+  period?: string
+): Promise<BazarAssignment[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      let query = supabase
+        .from('bazar_assignments')
+        .select('*, member:profiles!assigned_to(full_name), manager:profiles!assigned_by(full_name)')
+        .eq('system_id', systemId)
+        .order('assigned_date', { ascending: false });
+
+      if (period) {
+        const start = `${period}-01`;
+        const [y, m] = period.split('-').map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        const end = `${period}-${String(lastDay).padStart(2, '0')}`;
+        query = query.gte('assigned_date', start).lte('assigned_date', end);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        return data.map((d: any) => ({
+          ...d,
+          member_name: d.member?.full_name,
+          manager_name: d.manager?.full_name,
+        }));
+      }
+    } catch (e) {
+      console.warn('Fallback to store.bazarAssignments:', e);
+    }
+  }
+
+  return store.bazarAssignments
+    .filter((a) => {
+      if (a.system_id !== systemId) return false;
+      if (period && !a.assigned_date.startsWith(period)) return false;
+      return true;
+    })
+    .map((a) => ({
+      ...a,
+      member_name: store.profiles.find((p) => p.id === a.assigned_to)?.full_name,
+      manager_name: store.profiles.find((p) => p.id === a.assigned_by)?.full_name,
+    }))
+    .sort((a, b) => b.assigned_date.localeCompare(a.assigned_date));
+}
+
+export async function assignBazarMoney(params: {
+  system_id: string;
+  assigned_to: string;
+  assigned_by: string;
+  assigned_amount: number;
+  assigned_date: string;
+  note?: string;
+}): Promise<BazarAssignment> {
+  const newAssignment: BazarAssignment = {
+    id: 'asgn-' + Date.now(),
+    system_id: params.system_id,
+    assigned_to: params.assigned_to,
+    assigned_by: params.assigned_by,
+    assigned_amount: roundToDecimals(params.assigned_amount, 2),
+    assigned_date: params.assigned_date,
+    note: params.note?.trim() || null,
+    status: 'assigned',
+    items: [],
+    total_spent: 0,
+    remaining_balance: roundToDecimals(params.assigned_amount, 2),
+    returned_amount: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('bazar_assignments')
+        .insert({
+          system_id: newAssignment.system_id,
+          assigned_to: newAssignment.assigned_to,
+          assigned_by: newAssignment.assigned_by,
+          assigned_amount: newAssignment.assigned_amount,
+          assigned_date: newAssignment.assigned_date,
+          note: newAssignment.note,
+          status: 'assigned',
+          items: [],
+          total_spent: 0,
+          remaining_balance: newAssignment.remaining_balance,
+          returned_amount: 0,
+        })
+        .select()
+        .single();
+
+      if (!error && data?.id) {
+        newAssignment.id = data.id;
+      }
+    } catch (e) {
+      console.warn('Fallback inserting bazar assignment locally:', e);
+    }
+  }
+
+  store.bazarAssignments.unshift(newAssignment);
+
+  await logAuditAction({
+    systemId: params.system_id,
+    actorId: params.assigned_by,
+    actionType: 'EXPENSE_RECORDED',
+    targetType: 'bazar_assignments',
+    targetId: newAssignment.id,
+    newValue: {
+      assigned_to: params.assigned_to,
+      assigned_amount: params.assigned_amount,
+      status: 'assigned',
+    },
+    reason: `Assigned ৳${params.assigned_amount} for bazar shopping`,
+  });
+
+  return newAssignment;
+}
+
+export async function submitBazarReport(params: {
+  assignment_id: string;
+  items: BazarItem[];
+  total_spent: number;
+  submission_note?: string;
+  receipt_url?: string;
+  actor_id?: string;
+}): Promise<BazarAssignment> {
+  const asgn = store.bazarAssignments.find((a) => a.id === params.assignment_id);
+  const now = new Date().toISOString();
+  const spent = roundToDecimals(params.total_spent, 2);
+  const assignedAmt = asgn ? asgn.assigned_amount : spent;
+  const remaining = roundToDecimals(assignedAmt - spent, 2);
+
+  const updates = {
+    items: params.items,
+    total_spent: spent,
+    remaining_balance: remaining,
+    submitted_at: now,
+    submission_note: params.submission_note?.trim() || null,
+    receipt_url: params.receipt_url || null,
+    status: 'submitted' as AssignmentStatus,
+    rejection_reason: null,
+    updated_at: now,
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('bazar_assignments')
+        .update(updates)
+        .eq('id', params.assignment_id);
+    } catch (e) {
+      console.warn('Fallback updating bazar assignment report locally:', e);
+    }
+  }
+
+  if (asgn) {
+    Object.assign(asgn, updates);
+
+    await logAuditAction({
+      systemId: asgn.system_id,
+      actorId: params.actor_id || asgn.assigned_to,
+      actionType: 'EXPENSE_RECORDED',
+      targetType: 'bazar_assignments',
+      targetId: asgn.id,
+      newValue: {
+        total_spent: spent,
+        remaining_balance: remaining,
+        itemsCount: params.items.length,
+        status: 'submitted',
+      },
+      reason: `Submitted bazar expense report: ৳${spent} spent, ৳${remaining} remaining`,
+    });
+  }
+
+  return asgn || ({ id: params.assignment_id, ...updates } as any);
+}
+
+export async function reviewBazarReport(params: {
+  assignment_id: string;
+  manager_id: string;
+  status: 'approved' | 'rejected';
+  rejection_reason?: string;
+}): Promise<BazarAssignment> {
+  const asgn = store.bazarAssignments.find((a) => a.id === params.assignment_id);
+  const now = new Date().toISOString();
+
+  let finalStatus: AssignmentStatus = params.status;
+  // If approved and remaining_balance <= 0, no money needs to be returned -> completed!
+  if (params.status === 'approved' && asgn && (asgn.remaining_balance || 0) <= 0) {
+    finalStatus = 'completed';
+  }
+
+  const updates: any = {
+    status: finalStatus,
+    reviewed_by: params.manager_id,
+    reviewed_at: now,
+    rejection_reason: params.status === 'rejected' ? params.rejection_reason || 'Rejected by manager' : null,
+    updated_at: now,
+  };
+
+  // If completed right away, create the official bazar_expense record
+  let createdExpenseId: string | undefined = undefined;
+  if (finalStatus === 'completed' && asgn && asgn.total_spent && asgn.total_spent > 0) {
+    const itemDesc = asgn.items?.map((i) => `${i.item_name} (${i.quantity || ''} ৳${i.price})`).join(', ') || 'Bazar Shopping';
+    const expense = await recordBazarExpense({
+      system_id: asgn.system_id,
+      date: asgn.assigned_date,
+      category: 'other',
+      description: `Bazar: ${itemDesc.slice(0, 100)}`,
+      amount: asgn.total_spent,
+      purchaser_id: asgn.assigned_to,
+      created_by: params.manager_id,
+      funding_source: 'shared_fund',
+      receipt_url: asgn.receipt_url,
+      approval_status: 'approved',
+      approved_by: params.manager_id,
+      approved_at: now,
+      isManager: true,
+      assignment_id: asgn.id,
+    });
+    createdExpenseId = expense.id;
+    updates.expense_id = createdExpenseId;
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('bazar_assignments')
+        .update(updates)
+        .eq('id', params.assignment_id);
+    } catch (e) {
+      console.warn('Fallback updating bazar review locally:', e);
+    }
+  }
+
+  if (asgn) {
+    Object.assign(asgn, updates);
+
+    await logAuditAction({
+      systemId: asgn.system_id,
+      actorId: params.manager_id,
+      actionType: params.status === 'approved' ? 'EXPENSE_APPROVED' : 'EXPENSE_REJECTED',
+      targetType: 'bazar_assignments',
+      targetId: asgn.id,
+      newValue: { status: finalStatus, rejection_reason: updates.rejection_reason },
+      reason: `Manager reviewed bazar report: ${finalStatus}`,
+    });
+  }
+
+  return asgn || ({ id: params.assignment_id, ...updates } as any);
+}
+
+export async function confirmBazarReturn(params: {
+  assignment_id: string;
+  manager_id: string;
+  returned_amount?: number;
+}): Promise<BazarAssignment> {
+  const asgn = store.bazarAssignments.find((a) => a.id === params.assignment_id);
+  const now = new Date().toISOString();
+  const returnAmt = params.returned_amount !== undefined
+    ? roundToDecimals(params.returned_amount, 2)
+    : (asgn ? asgn.remaining_balance || 0 : 0);
+
+  const updates: any = {
+    returned_amount: returnAmt,
+    return_confirmed_by: params.manager_id,
+    return_confirmed_at: now,
+    status: 'completed' as AssignmentStatus,
+    updated_at: now,
+  };
+
+  // If completed, ensure official approved bazar_expense record is created for actual spent
+  if (asgn && asgn.total_spent && asgn.total_spent > 0 && !asgn.expense_id) {
+    const itemDesc = asgn.items?.map((i) => `${i.item_name} (${i.quantity || ''} ৳${i.price})`).join(', ') || 'Bazar Shopping';
+    const expense = await recordBazarExpense({
+      system_id: asgn.system_id,
+      date: asgn.assigned_date,
+      category: 'other',
+      description: `Bazar: ${itemDesc.slice(0, 100)}`,
+      amount: asgn.total_spent,
+      purchaser_id: asgn.assigned_to,
+      created_by: params.manager_id,
+      funding_source: 'shared_fund',
+      receipt_url: asgn.receipt_url,
+      approval_status: 'approved',
+      approved_by: params.manager_id,
+      approved_at: now,
+      isManager: true,
+      assignment_id: asgn.id,
+    });
+    updates.expense_id = expense.id;
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('bazar_assignments')
+        .update(updates)
+        .eq('id', params.assignment_id);
+    } catch (e) {
+      console.warn('Fallback confirming bazar return locally:', e);
+    }
+  }
+
+  if (asgn) {
+    Object.assign(asgn, updates);
+
+    await logAuditAction({
+      systemId: asgn.system_id,
+      actorId: params.manager_id,
+      actionType: 'EXPENSE_APPROVED',
+      targetType: 'bazar_assignments',
+      targetId: asgn.id,
+      newValue: {
+        returned_amount: returnAmt,
+        status: 'completed',
+      },
+      reason: `Confirmed return of remaining bazar money: ৳${returnAmt}`,
+    });
+  }
+
+  return asgn || ({ id: params.assignment_id, ...updates } as any);
 }
 
 // -----------------------------------------------------------------------------
@@ -1545,7 +2076,9 @@ export async function getMonthlyAccountingSummary(
 ): Promise<MonthlyAccountingSummary> {
   const members = await getSystemMembers(systemId);
   const expenses = await getBazarExpenses(systemId, period);
-  const activeExpenses = expenses.filter((e) => !e.is_reversed);
+  const activeExpenses = expenses.filter(
+    (e) => !e.is_reversed && (e.approval_status === 'approved' || !e.approval_status)
+  );
   const totalBazarExpenses = roundToDecimals(
     activeExpenses.reduce((acc, e) => acc + e.amount, 0),
     2
