@@ -67,6 +67,7 @@ export interface SystemSettings {
   cutoff_time?: string;        // Fallback / legacy
   allow_custom_meals: boolean;
   auto_assign_meals: boolean;
+  meal_start_date?: string | null; // Date when mess meals started / opened (YYYY-MM-DD)
   updated_at?: string;
 }
 
@@ -225,6 +226,7 @@ export interface MemberRentItem {
 
 export interface MonthlyCostsConfig {
   period: string;
+  mealOpenDate?: string;              // YYYY-MM-DD when meals started/opened for this month
   fixedCosts: FixedCostItem[];
   totalFixedCost: number;
   perMemberFixedCost: number;
@@ -259,6 +261,9 @@ export interface MonthlyAccountingSummary {
   period: string; // YYYY-MM
   status: AccountingPeriodStatus;
   version: number;
+  meal_open_date: string;           // Date when meals started for this period (YYYY-MM-DD)
+  days_elapsed: number;             // Count of days counted so far (day by day)
+  total_days_in_period: number;     // Total calendar days in the month
   total_expenses: number;
   total_meals: number;
   meal_rate: number | null;

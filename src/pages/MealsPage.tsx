@@ -29,7 +29,7 @@ import {
 import type { CookingDay, DailyMealRecord } from '../types';
 
 export const MealsPage: React.FC = () => {
-  const { activeSystem, activeRole, settings } = useMealSystem();
+  const { activeSystem, activeRole, settings, members } = useMealSystem();
   const { user } = useAuth();
 
   const todayStr = getDhakaTodayDateString();
@@ -47,6 +47,11 @@ export const MealsPage: React.FC = () => {
   const [editingCookingStatus, setEditingCookingStatus] = useState<boolean>(false);
   const [statusVal, setStatusVal] = useState<'cooking' | 'no_cooking' | 'pending'>('cooking');
   const [statusNote, setStatusNote] = useState<string>('');
+
+  const currentPeriod = selectedDate.slice(0, 7);
+  const openDate = settings?.meal_start_date || (activeSystem?.created_at ? activeSystem.created_at.slice(0, 10) : undefined) || `${currentPeriod}-01`;
+  const isBeforeOpen = selectedDate < openDate;
+  const isFutureDate = selectedDate > todayStr;
 
   const cutoff = getMealCutoffInfo({
     lunchCutoffTime: settings?.lunch_cutoff_time,
@@ -100,14 +105,14 @@ export const MealsPage: React.FC = () => {
 
   const todayCooking = cookingDays.find((c) => c.date === selectedDate);
   const cookingStatus = todayCooking?.status || 'cooking';
-  const isNoCooking = cookingStatus === 'no_cooking';
+  const isNoCooking = isBeforeOpen || cookingStatus === 'no_cooking';
 
   // Current user's record on selected date
   const myRecord = mealRecords.find((r) => r.member_id === user?.id && r.date === selectedDate);
   const isAfternoonOff = isNoCooking || (myRecord?.lunch_turned_off ?? myRecord?.is_turned_off ?? false);
   const isNightOff = isNoCooking || (myRecord?.dinner_turned_off ?? myRecord?.is_turned_off ?? false);
   const isFullMealOff = isAfternoonOff && isNightOff;
-  const myEffectiveMeals = (isAfternoonOff ? 0 : 1) + (isNightOff ? 0 : 1);
+  const myEffectiveMeals = isBeforeOpen ? 0 : (isAfternoonOff ? 0 : 1) + (isNightOff ? 0 : 1);
 
   // Toggle user's afternoon meal
   const handleToggleAfternoon = async () => {
@@ -272,6 +277,8 @@ export const MealsPage: React.FC = () => {
           const isToday = dStr === todayStr;
           const dayCooking = cookingDays.find((c) => c.date === dStr);
           const status = dayCooking?.status || 'cooking';
+          const isDayBeforeOpen = dStr < openDate;
+          const isDayFuture = dStr > todayStr;
 
           return (
             <button
@@ -298,13 +305,15 @@ export const MealsPage: React.FC = () => {
                 {formatDate(dStr, { day: 'numeric' })}
               </div>
               <div>
-                {status === 'cooking' && (
+                {isDayBeforeOpen ? (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Not Open</span>
+                ) : isDayFuture ? (
+                  <span style={{ fontSize: '0.65rem', color: '#818cf8' }}>Upcoming</span>
+                ) : status === 'cooking' ? (
                   <span style={{ fontSize: '0.65rem', color: 'var(--brand-primary)' }}>Cooking</span>
-                )}
-                {status === 'no_cooking' && (
+                ) : status === 'no_cooking' ? (
                   <span style={{ fontSize: '0.65rem', color: 'var(--color-debt)', fontWeight: 700 }}>No Cook</span>
-                )}
-                {status === 'pending' && (
+                ) : (
                   <span style={{ fontSize: '0.65rem', color: 'var(--color-warning)' }}>Pending</span>
                 )}
               </div>
@@ -317,13 +326,17 @@ export const MealsPage: React.FC = () => {
       <div
         className="card"
         style={{
-          background: isNoCooking
+          background: isBeforeOpen
+            ? 'linear-gradient(135deg, rgba(148, 163, 184, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
+            : isNoCooking
             ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
             : cookingStatus === 'pending'
             ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)'
             : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)',
           border: `1px solid ${
-            isNoCooking
+            isBeforeOpen
+              ? 'rgba(148, 163, 184, 0.3)'
+              : isNoCooking
               ? 'rgba(244, 63, 94, 0.3)'
               : cookingStatus === 'pending'
               ? 'rgba(245, 158, 11, 0.3)'
@@ -338,17 +351,21 @@ export const MealsPage: React.FC = () => {
               <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                 Kitchen Status for {formatDate(selectedDate, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
-              <span className={`badge ${isNoCooking ? 'badge-debt' : cookingStatus === 'pending' ? 'badge-warning' : 'badge-credit'}`}>
-                {isNoCooking ? 'No Cooking Today' : cookingStatus === 'pending' ? 'Pending Confirmation' : 'Cooking Scheduled'}
+              <span className={`badge ${isBeforeOpen ? 'badge-secondary' : isNoCooking ? 'badge-debt' : isFutureDate ? 'badge-warning' : cookingStatus === 'pending' ? 'badge-warning' : 'badge-credit'}`}>
+                {isBeforeOpen ? 'Mess Not Open Yet' : isNoCooking ? 'No Cooking Today' : isFutureDate ? 'Upcoming Day' : cookingStatus === 'pending' ? 'Pending Confirmation' : 'Cooking Scheduled'}
               </span>
             </div>
 
             <h3 style={{ fontSize: '1.35rem', marginBottom: '0.35rem' }}>
-              {isNoCooking
+              {isBeforeOpen
+                ? `Kitchen Not Open Yet (Mess started on ${formatDate(openDate)})`
+                : isNoCooking
                 ? 'Kitchen Closed (0 Meals Charged)'
+                : isFutureDate
+                ? 'Upcoming Day (Meals count day by day when date arrives)'
                 : cookingStatus === 'pending'
                 ? 'Schedule Pending Confirmation'
-                : 'Regular 2 Meals (Afternoon & Night)'}
+                : 'Regular 2 Meals (Afternoon & Night) • Day Counted'}
             </h3>
 
             {todayCooking?.note && (
@@ -529,11 +546,16 @@ export const MealsPage: React.FC = () => {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Total Meals on {selectedDate}:{' '}
             <strong style={{ color: 'var(--brand-primary)', fontSize: '1.05rem' }}>
-              {isNoCooking
+              {isBeforeOpen
                 ? 0
-                : mealRecords
-                    .filter((r) => r.date === selectedDate)
-                    .reduce((sum, r) => sum + (r.is_turned_off ? 0 : (r.lunch_turned_off ? 0 : (r.lunch_count ?? 1)) + (r.dinner_turned_off ? 0 : (r.dinner_count ?? 1))), 0)}
+                : isNoCooking
+                ? 0
+                : (members.filter((m) => m.status === 'active').length > 0 ? members.filter((m) => m.status === 'active') : members).reduce((sum, mem) => {
+                    const rec = mealRecords.find((r) => r.member_id === mem.user_id && r.date === selectedDate);
+                    const lOff = rec ? (rec.lunch_turned_off || rec.is_turned_off) : false;
+                    const dOff = rec ? (rec.dinner_turned_off || rec.is_turned_off) : false;
+                    return sum + (lOff ? 0 : 1) + (dOff ? 0 : 1);
+                  }, 0)}
             </strong>
           </div>
         </div>
@@ -555,82 +577,101 @@ export const MealsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {mealRecords
-                  .filter((r) => r.date === selectedDate)
-                  .map((rec) => {
-                    const lOff = isNoCooking || rec.lunch_turned_off || rec.is_turned_off;
-                    const dOff = isNoCooking || rec.dinner_turned_off || rec.is_turned_off;
-                    const effectiveTotal = isNoCooking ? 0 : (lOff ? 0 : (rec.lunch_count ?? 1)) + (dOff ? 0 : (rec.dinner_count ?? 1));
+                {(members.filter((m) => m.status === 'active').length > 0 ? members.filter((m) => m.status === 'active') : members).map((mem) => {
+                  const rec = mealRecords.find((r) => r.member_id === mem.user_id && r.date === selectedDate);
+                  const lOff = isBeforeOpen || isNoCooking || (rec ? (rec.lunch_turned_off || rec.is_turned_off) : false);
+                  const dOff = isBeforeOpen || isNoCooking || (rec ? (rec.dinner_turned_off || rec.is_turned_off) : false);
+                  const effectiveTotal = isBeforeOpen || isNoCooking ? 0 : (lOff ? 0 : (rec?.lunch_count ?? 1)) + (dOff ? 0 : (rec?.dinner_count ?? 1));
+                  const memberName = mem.profile?.full_name || rec?.member_name || mem.user_id;
 
-                    return (
-                      <tr key={rec.id}>
-                        <td style={{ fontWeight: 600 }}>
-                          {rec.member_name || rec.member_id}
-                          {rec.member_id === user?.id && (
-                            <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: 'var(--brand-primary)' }}>
-                              (You)
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {isNoCooking ? (
-                            <span className="badge badge-debt">No Cook</span>
-                          ) : lOff ? (
-                            <span className="badge badge-debt">Cut (0)</span>
-                          ) : (
-                            <span className="badge badge-credit">Active (1)</span>
-                          )}
-                        </td>
-                        <td>
-                          {isNoCooking ? (
-                            <span className="badge badge-debt">No Cook</span>
-                          ) : dOff ? (
-                            <span className="badge badge-debt">Cut (0)</span>
-                          ) : (
-                            <span className="badge badge-credit">Active (1)</span>
-                          )}
-                        </td>
-                        <td style={{ fontWeight: 800, color: effectiveTotal > 0 ? 'var(--brand-primary)' : 'var(--text-dim)' }}>
-                          {effectiveTotal} meals
-                        </td>
-                        <td>
-                          {isNoCooking ? (
-                            <span className="badge badge-debt">Kitchen Closed</span>
-                          ) : effectiveTotal === 0 ? (
-                            <span className="badge badge-debt">Full Off</span>
-                          ) : effectiveTotal === 1 ? (
-                            <span className="badge badge-warning">1 Meal</span>
-                          ) : (
-                            <span className="badge badge-credit">2 Meals</span>
-                          )}
-                        </td>
-                        <td>
-                          {rec.is_post_cutoff_change ? (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-amber)' }}>
-                              Corrected: {rec.change_reason || ''}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Regular</span>
-                          )}
-                        </td>
-
-                        {activeRole === 'manager' && (
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              onClick={() => {
-                                setEditingRecord(rec);
-                                setEditingMemberName(rec.member_name || '');
-                                setShowPostCutoffModal(true);
-                              }}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              <Edit2 size={13} /> Edit
-                            </button>
-                          </td>
+                  return (
+                    <tr key={mem.id || mem.user_id}>
+                      <td style={{ fontWeight: 600 }}>
+                        {memberName}
+                        {mem.user_id === user?.id && (
+                          <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: 'var(--brand-primary)' }}>
+                            (You)
+                          </span>
                         )}
-                      </tr>
-                    );
-                  })}
+                      </td>
+                      <td>
+                        {isBeforeOpen ? (
+                          <span className="badge badge-secondary">Not Open</span>
+                        ) : isNoCooking ? (
+                          <span className="badge badge-debt">No Cook</span>
+                        ) : lOff ? (
+                          <span className="badge badge-debt">Cut (0)</span>
+                        ) : (
+                          <span className="badge badge-credit">Active (1)</span>
+                        )}
+                      </td>
+                      <td>
+                        {isBeforeOpen ? (
+                          <span className="badge badge-secondary">Not Open</span>
+                        ) : isNoCooking ? (
+                          <span className="badge badge-debt">No Cook</span>
+                        ) : dOff ? (
+                          <span className="badge badge-debt">Cut (0)</span>
+                        ) : (
+                          <span className="badge badge-credit">Active (1)</span>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 800, color: effectiveTotal > 0 ? 'var(--brand-primary)' : 'var(--text-dim)' }}>
+                        {effectiveTotal} meals
+                      </td>
+                      <td>
+                        {isBeforeOpen ? (
+                          <span className="badge badge-secondary">Not Open Yet</span>
+                        ) : isNoCooking ? (
+                          <span className="badge badge-debt">Kitchen Closed</span>
+                        ) : isFutureDate ? (
+                          <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                            Upcoming ({effectiveTotal})
+                          </span>
+                        ) : effectiveTotal === 0 ? (
+                          <span className="badge badge-debt">Full Off</span>
+                        ) : effectiveTotal === 1 ? (
+                          <span className="badge badge-warning">1 Meal</span>
+                        ) : (
+                          <span className="badge badge-credit">2 Meals</span>
+                        )}
+                      </td>
+                      <td>
+                        {rec?.is_post_cutoff_change ? (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-amber)' }}>
+                            Corrected: {rec.change_reason || ''}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Regular</span>
+                        )}
+                      </td>
+
+                      {activeRole === 'manager' && (
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            onClick={() => {
+                              setEditingRecord(rec || {
+                                id: 'rec-' + mem.user_id + '-' + selectedDate,
+                                system_id: activeSystem.id,
+                                member_id: mem.user_id,
+                                date: selectedDate,
+                                meal_count: effectiveTotal,
+                                is_turned_off: effectiveTotal === 0,
+                                is_post_cutoff_change: false,
+                              });
+                              setEditingMemberName(memberName);
+                              setShowPostCutoffModal(true);
+                            }}
+                            disabled={isBeforeOpen}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            <Edit2 size={13} /> Edit
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -33,8 +33,10 @@ import {
   calculateNetPayable,
   getBalanceStatus,
   computeEffectiveMealCount,
+  calculatePeriodDayRange,
   roundToDecimals,
 } from '../utils/accounting';
+import { getDhakaTodayDateString } from '../utils/formatters';
 
 // In-memory store (active when Supabase is disconnected or during fallback)
 const store = {
@@ -1228,6 +1230,7 @@ export async function recordAdjustment(
 
 const FIXED_COSTS_STORAGE_KEY = 'mealtrack_fixed_costs';
 const MEMBER_RENTS_STORAGE_KEY = 'mealtrack_member_rents';
+const PERIOD_OPEN_DATE_KEY = 'mealtrack_period_open_date';
 
 export async function getMonthlyCostsConfig(
   systemId: string,
@@ -1235,6 +1238,15 @@ export async function getMonthlyCostsConfig(
 ): Promise<MonthlyCostsConfig> {
   let fixedCosts: FixedCostItem[] = [];
   let memberRents: Record<string, number> = {};
+  let mealOpenDate: string | undefined = undefined;
+
+  // Retrieve stored open date if any
+  try {
+    const storedOpenDate = localStorage.getItem(`${PERIOD_OPEN_DATE_KEY}_${systemId}_${period}`);
+    if (storedOpenDate) {
+      mealOpenDate = storedOpenDate;
+    }
+  } catch {}
 
   if (isSupabaseConfigured && supabase) {
     try {
@@ -1297,6 +1309,7 @@ export async function getMonthlyCostsConfig(
 
   return {
     period,
+    mealOpenDate,
     fixedCosts,
     totalFixedCost,
     perMemberFixedCost,
@@ -1308,6 +1321,7 @@ export async function saveMonthlyCostsConfig(
   systemId: string,
   period: string,
   params: {
+    mealOpenDate?: string;
     fixedCosts: { id?: string; title: string; amount: number; category: FixedCostCategory }[];
     memberRents: Record<string, number>;
   },
@@ -1332,6 +1346,12 @@ export async function saveMonthlyCostsConfig(
       `${MEMBER_RENTS_STORAGE_KEY}_${systemId}_${period}`,
       JSON.stringify(params.memberRents)
     );
+    if (params.mealOpenDate) {
+      localStorage.setItem(
+        `${PERIOD_OPEN_DATE_KEY}_${systemId}_${period}`,
+        params.mealOpenDate
+      );
+    }
   } catch (e) {
     console.warn('Failed to save monthly costs to localStorage:', e);
   }
@@ -1416,9 +1436,25 @@ export async function getMonthlyAccountingSummary(
   const totalSharedFundSpent = roundToDecimals(sharedBazarExpenses + totalFixedCosts, 2);
 
   const [y, m] = period.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const startDate = `${period}-01`;
-  const endDate = `${period}-${String(daysInMonth).padStart(2, '0')}`;
+  const settings = await getSystemSettings(systemId);
+  const todayStr = getDhakaTodayDateString();
+
+  const configuredOpenDate = costsConfig.mealOpenDate || settings?.meal_start_date;
+  const dayRange = calculatePeriodDayRange({
+    period,
+    mealOpenDate: configuredOpenDate,
+    todayDateStr: todayStr,
+  });
+
+  const {
+    startDate,
+    endDate,
+    totalDaysInPeriod,
+    effectiveOpenDate,
+    maxCountDate,
+    daysElapsed,
+  } = dayRange;
+
   const cookingDays = await getCookingDays(systemId, startDate, endDate);
   const cookingDayMap = new Map<string, 'cooking' | 'no_cooking' | 'pending'>(
     cookingDays.map((c) => [c.date, c.status])
@@ -1432,8 +1468,17 @@ export async function getMonthlyAccountingSummary(
 
   members.forEach((mem) => {
     let memberMeals = 0;
-    for (let day = 1; day <= daysInMonth; day++) {
+    for (let day = 1; day <= totalDaysInPeriod; day++) {
       const dateStr = `${period}-${String(day).padStart(2, '0')}`;
+
+      // DAY-BY-DAY ACCOUNTING:
+      // Don't show or bill all meals at the beginnings in advance!
+      // 1) If date is BEFORE the meal system opened -> 0 meals
+      // 2) If date is in the FUTURE (after maxCountDate / today) -> 0 meals
+      if (dateStr < effectiveOpenDate || dateStr > maxCountDate) {
+        continue;
+      }
+
       const cStatus = cookingDayMap.get(dateStr) || 'cooking';
       const record = mealRecords.find(
         (r) => r.member_id === mem.user_id && r.date === dateStr
@@ -1568,6 +1613,9 @@ export async function getMonthlyAccountingSummary(
     period,
     status: existingSnapshot ? 'finalized' : 'open',
     version: existingSnapshot ? existingSnapshot.version : 1,
+    meal_open_date: effectiveOpenDate,
+    days_elapsed: daysElapsed,
+    total_days_in_period: totalDaysInPeriod,
     total_expenses: totalBazarExpenses,
     total_meals: totalFinalizedMeals,
     meal_rate: mealRate,

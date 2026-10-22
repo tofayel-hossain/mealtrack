@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  CalendarCheck,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +35,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'fixed' | 'rent'>('fixed');
+  const [mealOpenDate, setMealOpenDate] = useState<string>('');
   const [fixedCosts, setFixedCosts] = useState<{ id?: string; title: string; amount: number; category: FixedCostCategory }[]>([]);
   const [memberRents, setMemberRents] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -51,6 +53,8 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
         setLoading(true);
         setError(null);
         const config = await getMonthlyCostsConfig(activeSystem!.id, period);
+
+        setMealOpenDate(config.mealOpenDate || settings?.meal_start_date || `${period}-01`);
 
         if (config.fixedCosts.length > 0) {
           setFixedCosts(config.fixedCosts);
@@ -126,6 +130,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
         activeSystem.id,
         period,
         {
+          mealOpenDate: mealOpenDate.trim() || `${period}-01`,
           fixedCosts: validFixedCosts,
           memberRents,
         },
@@ -159,6 +164,38 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
           <button onClick={onClose} className="btn-icon" style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
+        </div>
+
+        {/* Meal System Open Date Banner */}
+        <div style={{
+          background: 'rgba(99, 102, 241, 0.08)',
+          border: '1px solid rgba(99, 102, 241, 0.25)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.85rem 1rem',
+          margin: '0.85rem 0 0.4rem 0',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-indigo)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <CalendarCheck size={16} /> Meal System Open Date for {period}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+              Meals count day by day from this date up to today. Days before this date & future days are not charged in advance.
+            </div>
+          </div>
+          <div style={{ minWidth: '150px' }}>
+            <input
+              type="date"
+              className="form-control"
+              value={mealOpenDate}
+              onChange={(e) => setMealOpenDate(e.target.value)}
+              style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
+            />
+          </div>
         </div>
 
         {/* Tab Switcher */}

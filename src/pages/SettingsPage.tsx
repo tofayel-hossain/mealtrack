@@ -28,6 +28,7 @@ export const SettingsPage: React.FC = () => {
   const [dinnerCutoffTime, setDinnerCutoffTime] = useState('');
   const [allowCustomMeals, setAllowCustomMeals] = useState(false);
   const [autoAssignMeals, setAutoAssignMeals] = useState(false);
+  const [mealStartDate, setMealStartDate] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -42,8 +43,9 @@ export const SettingsPage: React.FC = () => {
       setDinnerCutoffTime(settings.dinner_cutoff_time || '');
       setAllowCustomMeals(settings.allow_custom_meals ?? false);
       setAutoAssignMeals(settings.auto_assign_meals ?? false);
+      setMealStartDate(settings.meal_start_date || (activeSystem?.created_at ? activeSystem.created_at.slice(0, 10) : ''));
     }
-  }, [settings]);
+  }, [settings, activeSystem?.created_at]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +70,7 @@ export const SettingsPage: React.FC = () => {
           cutoff_time: formattedLunch,
           allow_custom_meals: allowCustomMeals,
           auto_assign_meals: autoAssignMeals,
+          meal_start_date: mealStartDate || null,
         },
         user.id
       );
@@ -169,6 +172,17 @@ export const SettingsPage: React.FC = () => {
                 onChange={(e) => setDinnerCutoffTime(e.target.value)}
                 disabled={activeRole !== 'manager'}
                 required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Meal System Start Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={mealStartDate}
+                onChange={(e) => setMealStartDate(e.target.value)}
+                disabled={activeRole !== 'manager'}
               />
             </div>
           </div>

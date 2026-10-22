@@ -119,7 +119,10 @@ export const ReportsPage: React.FC = () => {
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               Mess Code: <strong>{activeSystem?.code}</strong> • Accounting Period: <strong>{selectedPeriod}</strong> • Currency: <strong>{settings?.currency_code || ''}</strong>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
+            <div style={{ fontSize: '0.825rem', color: 'var(--brand-primary)', marginTop: '0.35rem', fontWeight: 600 }}>
+              Day-by-Day Accounting: {accounting?.days_elapsed ?? 0} of {accounting?.total_days_in_period ?? 30} days elapsed (Opened: {formatDate(accounting?.meal_open_date)})
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
               Generated on {formatDateTime(new Date())}
             </div>
           </div>
@@ -167,7 +170,7 @@ export const ReportsPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Member</th>
-                    <th>Meals</th>
+                    <th>Meals ({accounting?.days_elapsed ?? 0}d)</th>
                     <th>Meal Cost</th>
                     <th>Shared Bills (Fix)</th>
                     <th>Room Rent</th>

@@ -187,6 +187,72 @@ export function computeEffectiveMealCount(params: {
 }
 
 /**
+ * Calculates day-by-day period range, effective open date, and elapsed days.
+ * Prevents showing all month meals at the beginnings before days actually happen.
+ */
+export function calculatePeriodDayRange(params: {
+  period: string;               // YYYY-MM
+  mealOpenDate?: string | null; // YYYY-MM-DD
+  todayDateStr: string;         // YYYY-MM-DD
+}): {
+  startDate: string;
+  endDate: string;
+  totalDaysInPeriod: number;
+  effectiveOpenDate: string;
+  maxCountDate: string;
+  daysElapsed: number;
+  isCurrentPeriod: boolean;
+  isPastPeriod: boolean;
+  isFuturePeriod: boolean;
+} {
+  const { period, mealOpenDate, todayDateStr } = params;
+  const [y, m] = period.split('-').map(Number);
+  const totalDaysInPeriod = new Date(y, m, 0).getDate();
+  const startDate = `${period}-01`;
+  const endDate = `${period}-${String(totalDaysInPeriod).padStart(2, '0')}`;
+
+  const currentPeriod = todayDateStr.slice(0, 7);
+  const isCurrentPeriod = period === currentPeriod;
+  const isPastPeriod = period < currentPeriod;
+  const isFuturePeriod = period > currentPeriod;
+
+  // Determine effective open date
+  let effectiveOpenDate = mealOpenDate && mealOpenDate >= startDate && mealOpenDate <= endDate
+    ? mealOpenDate
+    : startDate;
+
+  // Determine the latest date to count meals for
+  let maxCountDate: string;
+  if (isCurrentPeriod) {
+    maxCountDate = todayDateStr;
+  } else if (isPastPeriod) {
+    maxCountDate = endDate;
+  } else {
+    maxCountDate = `${period}-00`; // Future month -> 0 days
+  }
+
+  // Count active days elapsed between effectiveOpenDate and maxCountDate
+  let daysElapsed = 0;
+  if (effectiveOpenDate <= maxCountDate) {
+    const startDay = parseInt(effectiveOpenDate.slice(8, 10), 10);
+    const maxDay = Math.min(totalDaysInPeriod, parseInt(maxCountDate.slice(8, 10), 10));
+    daysElapsed = Math.max(0, maxDay - startDay + 1);
+  }
+
+  return {
+    startDate,
+    endDate,
+    totalDaysInPeriod,
+    effectiveOpenDate,
+    maxCountDate,
+    daysElapsed,
+    isCurrentPeriod,
+    isPastPeriod,
+    isFuturePeriod,
+  };
+}
+
+/**
  * Validates whether a monthly period is ready for finalization.
  */
 export interface FinalizationChecklistResult {

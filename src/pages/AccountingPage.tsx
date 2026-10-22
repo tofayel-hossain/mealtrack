@@ -16,13 +16,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Users,
+  CalendarCheck,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { getMonthlyAccountingSummary } from '../services/api';
 import { SetMonthlyCostsModal } from '../components/SetMonthlyCostsModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
-import { formatCurrency, formatMealRate, getDhakaTodayDateString } from '../utils/formatters';
+import { formatCurrency, formatMealRate, formatDate, getDhakaTodayDateString } from '../utils/formatters';
 import { exportMonthlySummaryToCsv } from '../utils/csvExport';
 import type { MonthlyAccountingSummary } from '../types';
 
@@ -129,6 +130,42 @@ export const AccountingPage: React.FC = () => {
         <LoadingSpinner message="Calculating monthly meal rates and balance sheets..." />
       ) : (
         <>
+          {/* DAY-BY-DAY ACCOUNTING INDICATOR STRIP */}
+          <div style={{
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <CalendarCheck size={19} color="var(--accent-indigo)" />
+              <div style={{ fontSize: '0.875rem' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>Day-by-Day Meal Tracking:</span>{' '}
+                Counted{' '}
+                <strong style={{ color: 'var(--brand-primary)' }}>
+                  {accounting?.days_elapsed ?? 0} of {accounting?.total_days_in_period ?? 30} days
+                </strong>{' '}
+                elapsed • Meal system opened on{' '}
+                <strong>{formatDate(accounting?.meal_open_date)}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span className="badge badge-credit" style={{ fontSize: '0.75rem' }}>
+                Day-by-Day Active
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                (Future days are not charged in advance)
+              </span>
+            </div>
+          </div>
+
           {/* TOTAL FUND IN ACCOUNT AFTER ALL EXPENSES (Cash in Hand / Mess Fund) */}
           <div
             className="card"
@@ -294,7 +331,7 @@ export const AccountingPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Member Name</th>
-                    <th>Meals</th>
+                    <th>Meals ({accounting?.days_elapsed ?? 0}d)</th>
                     <th>Meal Cost</th>
                     <th>Shared Bills (Fix)</th>
                     <th>House Rent</th>

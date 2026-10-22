@@ -477,9 +477,10 @@ export const DashboardPage: React.FC = () => {
             <StatCard
               title="My Monthly Meals"
               value={`${mySummary?.meal_count ?? 0} meals`}
-              subtitle={`Meal Cost: ${formatCurrency(mySummary?.meal_cost, settings?.currency_symbol)}`}
+              subtitle={`Day-by-day: ${accounting?.days_elapsed ?? 0} of ${accounting?.total_days_in_period ?? 30} days counted`}
               icon={UtensilsCrossed}
               variant="info"
+              badgeText={`${accounting?.days_elapsed ?? 0} DAYS`}
             />
 
             <StatCard
@@ -641,9 +642,10 @@ export const DashboardPage: React.FC = () => {
             <StatCard
               title="Total Bazar Expenses"
               value={formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
-              subtitle={`${accounting?.total_meals ?? 0} meals @ ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
+              subtitle={`${accounting?.total_meals ?? 0} meals so far (${accounting?.days_elapsed ?? 0} days) @ ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
               icon={ShoppingBag}
               variant="warning"
+              badgeText={`${accounting?.days_elapsed ?? 0} DAYS COUNTED`}
             />
 
             <StatCard
@@ -667,8 +669,15 @@ export const DashboardPage: React.FC = () => {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <h3>Member Balances & Dues to Pay ({currentPeriod})</h3>
-                <p>Transparent breakdown of meals, fixed costs, room rent, and net amount to pay</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <h3>Member Balances & Dues to Pay ({currentPeriod})</h3>
+                  <span className="badge badge-credit" style={{ fontSize: '0.7rem' }}>
+                    Day {accounting?.days_elapsed ?? 0} of {accounting?.total_days_in_period ?? 30}
+                  </span>
+                </div>
+                <p>
+                  Day-by-day accounting active: only {accounting?.days_elapsed ?? 0} elapsed days counted so far (Meals opened: {formatDate(accounting?.meal_open_date)})
+                </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
@@ -689,7 +698,7 @@ export const DashboardPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Member</th>
-                    <th>Meals</th>
+                    <th>Meals ({accounting?.days_elapsed ?? 0}d)</th>
                     <th>Meal Cost</th>
                     <th>Bazar Done</th>
                     <th>Shared Bills</th>
