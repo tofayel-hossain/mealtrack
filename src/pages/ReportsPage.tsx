@@ -127,31 +127,35 @@ export const ReportsPage: React.FC = () => {
           {/* Key Figures Header Bar */}
           <div className="grid-cols-4">
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Fund in Account</span>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: (accounting?.fund_balance_remaining ?? 0) >= 0 ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.2rem' }}>
+                {formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
+              </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Cash in Hand after expenses</span>
+            </div>
+
+            <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Bazar Expenses</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>
                 {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
               </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Rate: {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}/meal</span>
             </div>
 
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Finalized Meals</span>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--brand-primary)', marginTop: '0.2rem' }}>
-                {accounting?.total_meals} meals
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Calculated Meal Rate</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Shared Fixed Bills</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: '0.2rem' }}>
-                {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
+                {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
               </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / person</span>
             </div>
 
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Deposits Collected</span>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-indigo)', marginTop: '0.2rem' }}>
-                {formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Outstanding Dues</span>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-warning)', marginTop: '0.2rem' }}>
+                {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
               </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>To collect from members</span>
             </div>
           </div>
 
@@ -164,37 +168,43 @@ export const ReportsPage: React.FC = () => {
                   <tr>
                     <th>Member</th>
                     <th>Meals</th>
-                    <th>Contrib %</th>
                     <th>Meal Cost</th>
-                    <th>Opening</th>
+                    <th>Shared Bills (Fix)</th>
+                    <th>Room Rent</th>
+                    <th>Total Billed</th>
                     <th>Deposits</th>
-                    <th>Personal Credits</th>
-                    <th>Net Adjustments</th>
-                    <th>Closing Balance</th>
-                    <th>Status</th>
+                    <th>Bazar Shopped</th>
+                    <th>Closing Bal</th>
+                    <th style={{ textAlign: 'right' }}>Need to Pay</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accounting?.members.map((m) => {
-                    const isCredit = m.closing_balance >= 0;
-                    const netAdj = m.positive_adjustments - m.negative_adjustments;
                     return (
                       <tr key={m.member_id}>
                         <td style={{ fontWeight: 700 }}>{m.member_name}</td>
                         <td>{m.meal_count}</td>
-                        <td>{m.meal_contribution_pct}%</td>
                         <td>{formatCurrency(m.meal_cost, settings?.currency_symbol)}</td>
-                        <td>{formatCurrency(m.opening_balance, settings?.currency_symbol)}</td>
-                        <td>+{formatCurrency(m.deposits, settings?.currency_symbol)}</td>
-                        <td>+{formatCurrency(m.personal_bazar_credits, settings?.currency_symbol)}</td>
-                        <td>{netAdj >= 0 ? `+${formatCurrency(netAdj, settings?.currency_symbol)}` : formatCurrency(netAdj, settings?.currency_symbol)}</td>
-                        <td style={{ fontWeight: 800, color: isCredit ? 'var(--color-credit)' : 'var(--color-debt)' }}>
+                        <td style={{ color: 'var(--accent-teal)' }}>{formatCurrency(m.shared_fixed_cost, settings?.currency_symbol)}</td>
+                        <td style={{ color: 'var(--accent-indigo)' }}>{formatCurrency(m.house_rent, settings?.currency_symbol)}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--color-debt)' }}>{formatCurrency(m.total_billed, settings?.currency_symbol)}</td>
+                        <td style={{ color: 'var(--brand-primary)' }}>+{formatCurrency(m.deposits, settings?.currency_symbol)}</td>
+                        <td style={{ color: 'var(--accent-teal)' }}>+{formatCurrency(m.total_bazar_done, settings?.currency_symbol)}</td>
+                        <td style={{ fontWeight: 700, color: m.closing_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
                           {formatCurrency(m.closing_balance, settings?.currency_symbol)}
                         </td>
-                        <td>
-                          <span className={`badge ${isCredit ? 'badge-credit' : 'badge-debt'}`}>
-                            {isCredit ? 'Credit' : 'Debt'}
-                          </span>
+                        <td style={{ textAlign: 'right' }}>
+                          {m.amount_need_to_pay > 0 ? (
+                            <span className="badge badge-debt" style={{ fontWeight: 800 }}>
+                              Need to Pay: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
+                            </span>
+                          ) : m.surplus_advance > 0 ? (
+                            <span className="badge badge-credit" style={{ fontWeight: 700 }}>
+                              Advance: +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
+                            </span>
+                          ) : (
+                            <span className="badge badge-secondary">Settled</span>
+                          )}
                         </td>
                       </tr>
                     );

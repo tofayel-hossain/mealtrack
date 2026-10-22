@@ -18,12 +18,13 @@ import {
   reverseDeposit,
   getFinancialLedger,
   recordAdjustment,
+  getMonthlyAccountingSummary,
 } from '../services/api';
 import { AddDepositModal } from '../components/AddDepositModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { formatCurrency, formatDate, getDhakaTodayDateString } from '../utils/formatters';
-import type { Deposit, FinancialLedgerEntry } from '../types';
+import type { Deposit, FinancialLedgerEntry, MonthlyAccountingSummary } from '../types';
 
 export const DepositsPage: React.FC = () => {
   const { activeSystem, activeRole, members, settings } = useMealSystem();
@@ -34,6 +35,7 @@ export const DepositsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'deposits' | 'ledger'>('deposits');
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [ledger, setLedger] = useState<FinancialLedgerEntry[]>([]);
+  const [accounting, setAccounting] = useState<MonthlyAccountingSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [memberFilter, setMemberFilter] = useState<string>('all');
 
@@ -51,12 +53,14 @@ export const DepositsPage: React.FC = () => {
     if (!activeSystem) return;
     try {
       setLoading(true);
-      const [deps, ledg] = await Promise.all([
+      const [deps, ledg, summary] = await Promise.all([
         getDeposits(activeSystem.id, selectedPeriod),
         getFinancialLedger(activeSystem.id, selectedPeriod),
+        getMonthlyAccountingSummary(activeSystem.id, selectedPeriod),
       ]);
       setDeposits(deps);
       setLedger(ledg);
+      setAccounting(summary);
     } catch (err) {
       console.error('Failed to load financial records:', err);
     } finally {
@@ -187,6 +191,49 @@ export const DepositsPage: React.FC = () => {
               </button>
             </>
           )}
+        </div>
+      </div>
+
+      {/* TOTAL FUND IN ACCOUNT & CASH IN HAND OVERVIEW */}
+      <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
+        <div className="card" style={{ borderLeft: '4px solid var(--brand-primary)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Fund in Account</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: (accounting?.fund_balance_remaining ?? 0) >= 0 ? 'var(--brand-primary)' : 'var(--color-debt)', margin: '0.2rem 0' }}>
+            {formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+            Cash in hand after expenses
+          </span>
+        </div>
+
+        <div className="card">
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Deposits Collected</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-indigo)', margin: '0.2rem 0' }}>
+            {formatCurrency(totalDeposits, settings?.currency_symbol)}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+            {deposits.filter((d) => !d.is_reversed).length} verified deposits
+          </span>
+        </div>
+
+        <div className="card">
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Fund Spent</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-debt)', margin: '0.2rem 0' }}>
+            {formatCurrency(accounting?.total_shared_fund_spent, settings?.currency_symbol)}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+            Shared bazar & fixed bills
+          </span>
+        </div>
+
+        <div className="card">
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Outstanding Dues</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-warning)', margin: '0.2rem 0' }}>
+            {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+            Owed by members for {selectedPeriod}
+          </span>
         </div>
       </div>
 

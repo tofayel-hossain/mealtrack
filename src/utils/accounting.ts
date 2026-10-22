@@ -69,23 +69,20 @@ export interface BalanceCalculationInput {
   personalBazarCredits: number;
   positiveAdjustments?: number;
   mealCost: number;
+  sharedFixedCost?: number; // Shared mess fixed bills (cook, wifi, electricity, etc.)
+  houseRent?: number;        // Individual room/seat rent
   negativeAdjustments?: number;
   otherCharges?: number;
 }
 
 /**
  * Calculates member closing balance using standard convention:
- * Positive (+) = Available Credit (advance paid)
- * Negative (-) = Outstanding Debt (owed to mess)
+ * Positive (+) = Available Credit (advance paid / surplus)
+ * Negative (-) = Outstanding Debt (owed to mess / need to pay)
  * 
- * Closing balance =
- *   opening balance
- *   + deposits
- *   + eligible personal bazar credits
- *   + positive adjustments
- *   − meal costs
- *   − negative adjustments
- *   − other charges
+ * Total Billed = meal costs + shared fixed costs + house rent + other charges + negative adjustments
+ * Total Paid = opening balance + deposits + personal bazar credits + positive adjustments
+ * Closing balance = Total Paid - Total Billed
  */
 export function calculateClosingBalance(input: BalanceCalculationInput): number {
   const opening = Number(input.openingBalance) || 0;
@@ -93,13 +90,47 @@ export function calculateClosingBalance(input: BalanceCalculationInput): number 
   const personalCredits = Number(input.personalBazarCredits) || 0;
   const posAdj = Number(input.positiveAdjustments) || 0;
   const mealCost = Number(input.mealCost) || 0;
+  const sharedFixed = Number(input.sharedFixedCost) || 0;
+  const rent = Number(input.houseRent) || 0;
   const negAdj = Number(input.negativeAdjustments) || 0;
   const otherCharges = Number(input.otherCharges) || 0;
 
   const totalCredits = opening + deposits + personalCredits + posAdj;
-  const totalDebits = mealCost + negAdj + otherCharges;
+  const totalDebits = mealCost + sharedFixed + rent + negAdj + otherCharges;
 
   return roundToDecimals(totalCredits - totalDebits, 2);
+}
+
+/**
+ * Calculates net payable amount for a member:
+ * If closing balance is negative, member owes that amount to the mess.
+ * If positive, member has advance surplus credit.
+ */
+export function calculateNetPayable(closingBalance: number): {
+  amountNeedToPay: number;
+  surplusAdvance: number;
+  status: 'need_to_pay' | 'surplus' | 'settled';
+} {
+  const rounded = roundToDecimals(closingBalance, 2);
+  if (rounded < -0.005) {
+    return {
+      amountNeedToPay: Math.abs(rounded),
+      surplusAdvance: 0,
+      status: 'need_to_pay',
+    };
+  }
+  if (rounded > 0.005) {
+    return {
+      amountNeedToPay: 0,
+      surplusAdvance: rounded,
+      status: 'surplus',
+    };
+  }
+  return {
+    amountNeedToPay: 0,
+    surplusAdvance: 0,
+    status: 'settled',
+  };
 }
 
 /**

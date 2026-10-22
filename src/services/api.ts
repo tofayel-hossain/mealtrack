@@ -21,12 +21,16 @@ import type {
   MonthlyReportSnapshot,
   AuditLogEntry,
   SystemNotification,
+  FixedCostItem,
+  FixedCostCategory,
+  MonthlyCostsConfig,
 } from '../types';
 import {
   calculateMonthlyMealRate,
   calculateMemberMealCost,
   calculateMealContributionPercentage,
   calculateClosingBalance,
+  calculateNetPayable,
   getBalanceStatus,
   computeEffectiveMealCount,
   roundToDecimals,
@@ -1219,6 +1223,169 @@ export async function recordAdjustment(
 }
 
 // -----------------------------------------------------------------------------
+// MONTHLY FIXED COSTS & VARIABLE MEMBER HOUSE RENT
+// -----------------------------------------------------------------------------
+
+const FIXED_COSTS_STORAGE_KEY = 'mealtrack_fixed_costs';
+const MEMBER_RENTS_STORAGE_KEY = 'mealtrack_member_rents';
+
+export async function getMonthlyCostsConfig(
+  systemId: string,
+  period: string
+): Promise<MonthlyCostsConfig> {
+  let fixedCosts: FixedCostItem[] = [];
+  let memberRents: Record<string, number> = {};
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: fcData, error: fcError } = await supabase
+        .from('monthly_fixed_costs')
+        .select('*')
+        .eq('system_id', systemId)
+        .eq('period', period);
+      if (!fcError && fcData && fcData.length > 0) {
+        fixedCosts = fcData.map((f: any) => ({
+          id: f.id,
+          system_id: f.system_id,
+          period: f.period,
+          title: f.title,
+          amount: Number(f.amount) || 0,
+          category: f.category || 'utility',
+        }));
+      }
+
+      const { data: mrData, error: mrError } = await supabase
+        .from('monthly_member_rent')
+        .select('*')
+        .eq('system_id', systemId)
+        .eq('period', period);
+      if (!mrError && mrData && mrData.length > 0) {
+        mrData.forEach((r: any) => {
+          memberRents[r.member_id] = Number(r.house_rent) || 0;
+        });
+      }
+    } catch (e) {
+      console.warn('Supabase monthly costs fetch fallback to local:', e);
+    }
+  }
+
+  // Fallback / sync with LocalStorage
+  if (fixedCosts.length === 0) {
+    try {
+      const stored = localStorage.getItem(`${FIXED_COSTS_STORAGE_KEY}_${systemId}_${period}`);
+      if (stored) {
+        fixedCosts = JSON.parse(stored);
+      }
+    } catch {}
+  }
+  if (Object.keys(memberRents).length === 0) {
+    try {
+      const stored = localStorage.getItem(`${MEMBER_RENTS_STORAGE_KEY}_${systemId}_${period}`);
+      if (stored) {
+        memberRents = JSON.parse(stored);
+      }
+    } catch {}
+  }
+
+  const members = await getSystemMembers(systemId);
+  const activeMembersCount = members.filter((m) => m.status === 'active').length || members.length || 1;
+  const totalFixedCost = roundToDecimals(
+    fixedCosts.reduce((sum, f) => sum + (Number(f.amount) || 0), 0),
+    2
+  );
+  const perMemberFixedCost = roundToDecimals(totalFixedCost / activeMembersCount, 2);
+
+  return {
+    period,
+    fixedCosts,
+    totalFixedCost,
+    perMemberFixedCost,
+    memberRents,
+  };
+}
+
+export async function saveMonthlyCostsConfig(
+  systemId: string,
+  period: string,
+  params: {
+    fixedCosts: { id?: string; title: string; amount: number; category: FixedCostCategory }[];
+    memberRents: Record<string, number>;
+  },
+  actorId: string
+): Promise<void> {
+  const normalizedFixedCosts: FixedCostItem[] = params.fixedCosts.map((f) => ({
+    id: f.id || 'fc-' + Math.random().toString(36).slice(2, 9),
+    system_id: systemId,
+    period,
+    title: f.title.trim(),
+    amount: roundToDecimals(Number(f.amount) || 0, 2),
+    category: f.category,
+  }));
+
+  // Store in LocalStorage immediately
+  try {
+    localStorage.setItem(
+      `${FIXED_COSTS_STORAGE_KEY}_${systemId}_${period}`,
+      JSON.stringify(normalizedFixedCosts)
+    );
+    localStorage.setItem(
+      `${MEMBER_RENTS_STORAGE_KEY}_${systemId}_${period}`,
+      JSON.stringify(params.memberRents)
+    );
+  } catch (e) {
+    console.warn('Failed to save monthly costs to localStorage:', e);
+  }
+
+  // Supabase persistence
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('monthly_fixed_costs')
+        .delete()
+        .eq('system_id', systemId)
+        .eq('period', period);
+
+      if (normalizedFixedCosts.length > 0) {
+        await supabase.from('monthly_fixed_costs').insert(
+          normalizedFixedCosts.map((f) => ({
+            system_id: systemId,
+            period,
+            title: f.title,
+            amount: f.amount,
+            category: f.category,
+          }))
+        );
+      }
+
+      const rentRows = Object.entries(params.memberRents).map(([memberId, rent]) => ({
+        system_id: systemId,
+        period,
+        member_id: memberId,
+        house_rent: roundToDecimals(Number(rent) || 0, 2),
+      }));
+
+      for (const row of rentRows) {
+        await supabase
+          .from('monthly_member_rent')
+          .upsert(row, { onConflict: 'system_id,period,member_id' });
+      }
+    } catch (e) {
+      console.warn('Supabase saveMonthlyCostsConfig fallback to local:', e);
+    }
+  }
+
+  await logAuditAction({
+    systemId,
+    actorId,
+    actionType: 'UPDATE_MONTHLY_COSTS',
+    targetType: 'MONTHLY_COSTS',
+    targetId: period,
+    newValue: { fixedCostsCount: normalizedFixedCosts.length, memberRents: params.memberRents },
+    reason: `Configured monthly fixed costs and member rent for ${period}`,
+  });
+}
+
+// -----------------------------------------------------------------------------
 // MONTHLY ACCOUNTING, MEAL RATE & CARRY-FORWARD SUMMARY
 // -----------------------------------------------------------------------------
 
@@ -1233,6 +1400,20 @@ export async function getMonthlyAccountingSummary(
     activeExpenses.reduce((acc, e) => acc + e.amount, 0),
     2
   );
+
+  // Load monthly fixed costs and variable house rent
+  const costsConfig = await getMonthlyCostsConfig(systemId, period);
+  const totalFixedCosts = costsConfig.totalFixedCost;
+  const perMemberFixedCost = costsConfig.perMemberFixedCost;
+
+  // Shared fund expenses: shared bazar + shared fixed costs
+  const sharedBazarExpenses = roundToDecimals(
+    activeExpenses
+      .filter((e) => e.funding_source === 'shared_fund')
+      .reduce((acc, e) => acc + e.amount, 0),
+    2
+  );
+  const totalSharedFundSpent = roundToDecimals(sharedBazarExpenses + totalFixedCosts, 2);
 
   const [y, m] = period.split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -1282,6 +1463,17 @@ export async function getMonthlyAccountingSummary(
     const mealCost = calculateMemberMealCost(memberMeals, mealRate);
     const contributionPct = calculateMealContributionPercentage(memberMeals, totalFinalizedMeals);
 
+    // Track total bazar done by this member (both shared fund and personal credit)
+    const memberExpenses = activeExpenses.filter((e) => e.purchaser_id === mem.user_id);
+    const totalBazarDone = roundToDecimals(
+      memberExpenses.reduce((sum, e) => sum + e.amount, 0),
+      2
+    );
+    const bazarTripsCount = memberExpenses.length;
+
+    // Individual house rent for this member
+    const houseRent = roundToDecimals(Number(costsConfig.memberRents[mem.user_id]) || 0, 2);
+
     const memberLedger = ledgerEntries.filter((l) => l.member_id === mem.user_id);
     const openingBalance = roundToDecimals(
       memberLedger
@@ -1321,7 +1513,13 @@ export async function getMonthlyAccountingSummary(
       positiveAdjustments,
       negativeAdjustments,
       mealCost,
+      sharedFixedCost: perMemberFixedCost,
+      houseRent,
     });
+
+    const net = calculateNetPayable(closingBalance);
+    const totalBilled = roundToDecimals(mealCost + perMemberFixedCost + houseRent + negativeAdjustments, 2);
+    const totalPaid = roundToDecimals(openingBalance + deposits + personalCredits + positiveAdjustments, 2);
 
     return {
       member_id: mem.user_id,
@@ -1329,9 +1527,17 @@ export async function getMonthlyAccountingSummary(
       opening_balance: openingBalance,
       deposits,
       personal_bazar_credits: personalCredits,
+      total_bazar_done: totalBazarDone,
+      bazar_trips_count: bazarTripsCount,
       meal_count: memberMeals,
       meal_cost: mealCost,
       meal_contribution_pct: contributionPct,
+      shared_fixed_cost: perMemberFixedCost,
+      house_rent: houseRent,
+      total_billed: totalBilled,
+      total_paid: totalPaid,
+      amount_need_to_pay: net.amountNeedToPay,
+      surplus_advance: net.surplusAdvance,
       positive_adjustments: positiveAdjustments,
       negative_adjustments: negativeAdjustments,
       other_charges: 0,
@@ -1344,6 +1550,20 @@ export async function getMonthlyAccountingSummary(
     .filter((s) => s.system_id === systemId && s.period === period)
     .sort((a, b) => b.version - a.version)[0];
 
+  const totalDeposits = roundToDecimals(
+    memberSummaries.reduce((sum, m) => sum + m.deposits, 0),
+    2
+  );
+  const fundBalanceRemaining = roundToDecimals(totalDeposits - totalSharedFundSpent, 2);
+  const totalAmountDue = roundToDecimals(
+    memberSummaries.reduce((sum, m) => sum + m.amount_need_to_pay, 0),
+    2
+  );
+  const totalHouseRent = roundToDecimals(
+    memberSummaries.reduce((sum, m) => sum + m.house_rent, 0),
+    2
+  );
+
   return {
     period,
     status: existingSnapshot ? 'finalized' : 'open',
@@ -1352,15 +1572,19 @@ export async function getMonthlyAccountingSummary(
     total_meals: totalFinalizedMeals,
     meal_rate: mealRate,
     is_meal_rate_available: mealRate !== null,
-    total_deposits: roundToDecimals(
-      memberSummaries.reduce((sum, m) => sum + m.deposits, 0),
-      2
-    ),
+    total_deposits: totalDeposits,
     total_personal_credits: roundToDecimals(
       memberSummaries.reduce((sum, m) => sum + m.personal_bazar_credits, 0),
       2
     ),
+    total_shared_fund_spent: totalSharedFundSpent,
+    fund_balance_remaining: fundBalanceRemaining,
+    total_fixed_costs: totalFixedCosts,
+    per_member_fixed_cost: perMemberFixedCost,
+    total_house_rent: totalHouseRent,
+    total_amount_due: totalAmountDue,
     members: memberSummaries,
+    fixed_costs_items: costsConfig.fixedCosts,
     finalized_at: existingSnapshot?.finalized_at || null,
     finalized_by_name: existingSnapshot ? store.profiles.find((p) => p.id === existingSnapshot.finalized_by)?.full_name : null,
     notes: existingSnapshot?.reason || null,

@@ -14,13 +14,25 @@ import { useMealSystem } from '../context/MealSystemContext';
 import { useAuth } from '../context/AuthContext';
 import { ManagerTransferModal } from '../components/ManagerTransferModal';
 import { EmptyState } from '../components/EmptyState';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatCurrency, getDhakaTodayDateString } from '../utils/formatters';
+import { getMonthlyAccountingSummary } from '../services/api';
+import { ShoppingBag, Home, Wallet } from 'lucide-react';
+import type { MonthlyAccountingSummary } from '../types';
 
 export const MembersPage: React.FC = () => {
-  const { activeSystem, activeRole, members, refreshSystemData } = useMealSystem();
+  const { activeSystem, activeRole, members, settings, refreshSystemData } = useMealSystem();
   const { user } = useAuth();
 
+  const currentPeriod = getDhakaTodayDateString().slice(0, 7);
   const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [accounting, setAccounting] = useState<MonthlyAccountingSummary | null>(null);
+
+  React.useEffect(() => {
+    if (!activeSystem) return;
+    getMonthlyAccountingSummary(activeSystem.id, currentPeriod)
+      .then(setAccounting)
+      .catch((err) => console.error('Failed to load member summaries:', err));
+  }, [activeSystem?.id, currentPeriod]);
 
   if (!activeSystem) {
     return (
@@ -111,6 +123,50 @@ export const MembersPage: React.FC = () => {
                     <span>Joined: {formatDate(mem.joined_at)}</span>
                   </div>
                 </div>
+
+                {/* Monthly Financial Quick Stats */}
+                {accounting && (() => {
+                  const mSummary = accounting.members.find((m) => m.member_id === mem.user_id);
+                  if (!mSummary) return null;
+                  return (
+                    <div style={{
+                      marginTop: '0.65rem',
+                      paddingTop: '0.65rem',
+                      borderTop: '1px solid var(--border-subtle)',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                      fontSize: '0.78rem',
+                    }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span title="Total Bazar Done this month">
+                          🛒 Bazar: <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(mSummary.total_bazar_done, settings?.currency_symbol)}</strong>
+                        </span>
+                        <span title="Room/Seat Rent">
+                          🏠 Rent: <strong style={{ color: 'var(--accent-indigo)' }}>{formatCurrency(mSummary.house_rent, settings?.currency_symbol)}</strong>
+                        </span>
+                      </div>
+
+                      <div>
+                        {mSummary.amount_need_to_pay > 0 ? (
+                          <span className="badge badge-debt" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                            Need to Pay: {formatCurrency(mSummary.amount_need_to_pay, settings?.currency_symbol)}
+                          </span>
+                        ) : mSummary.surplus_advance > 0 ? (
+                          <span className="badge badge-credit" style={{ fontSize: '0.75rem' }}>
+                            Advance: +{formatCurrency(mSummary.surplus_advance, settings?.currency_symbol)}
+                          </span>
+                        ) : (
+                          <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>
+                            Settled (৳0)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );

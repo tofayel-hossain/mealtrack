@@ -10,6 +10,9 @@ import {
   RotateCcw,
   Eye,
   CheckCircle2,
+  Users,
+  User,
+  Wallet,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +36,7 @@ export const BazarPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [fundingFilter, setFundingFilter] = useState<string>('all');
+  const [memberFilter, setMemberFilter] = useState<string>('all');
 
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [activeReceiptUrl, setActiveReceiptUrl] = useState<string | null>(null);
@@ -84,8 +88,9 @@ export const BazarPage: React.FC = () => {
 
     const matchesCategory = categoryFilter === 'all' || e.category === categoryFilter;
     const matchesFunding = fundingFilter === 'all' || e.funding_source === fundingFilter;
+    const matchesMember = memberFilter === 'all' || e.purchaser_id === memberFilter;
 
-    return matchesSearch && matchesCategory && matchesFunding;
+    return matchesSearch && matchesCategory && matchesFunding && matchesMember;
   });
 
   // Calculate totals
@@ -96,6 +101,42 @@ export const BazarPage: React.FC = () => {
     .reduce((sum, e) => sum + e.amount, 0);
   const sharedFundAmount = totalBazarAmount - personalCreditAmount;
   const receiptsCount = activeExpenses.filter((e) => Boolean(e.receipt_url)).length;
+
+  // Compute breakdown of bazar by member
+  const memberBazarMap = new Map<string, {
+    memberId: string;
+    memberName: string;
+    totalAmount: number;
+    sharedFundAmount: number;
+    personalCreditAmount: number;
+    tripCount: number;
+  }>();
+
+  activeExpenses.forEach((exp) => {
+    const id = exp.purchaser_id;
+    const name = exp.purchaser_name || 'Member';
+    const existing = memberBazarMap.get(id) || {
+      memberId: id,
+      memberName: name,
+      totalAmount: 0,
+      sharedFundAmount: 0,
+      personalCreditAmount: 0,
+      tripCount: 0,
+    };
+
+    existing.totalAmount += exp.amount;
+    existing.tripCount += 1;
+    if (exp.funding_source === 'personal_credit') {
+      existing.personalCreditAmount += exp.amount;
+    } else {
+      existing.sharedFundAmount += exp.amount;
+    }
+    memberBazarMap.set(id, existing);
+  });
+
+  const memberBazarList = Array.from(memberBazarMap.values()).sort(
+    (a, b) => b.totalAmount - a.totalAmount
+  );
 
   if (loading) {
     return <LoadingSpinner message="Loading..." />;
@@ -174,6 +215,94 @@ export const BazarPage: React.FC = () => {
         </div>
       </div>
 
+      {/* BAZAR BY MEMBER BREAKDOWN */}
+      <div className="card" style={{ marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={18} color="var(--brand-primary)" />
+            <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Bazar Contribution by Member ({selectedPeriod})</h3>
+          </div>
+          {memberFilter !== 'all' && (
+            <button
+              onClick={() => setMemberFilter('all')}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+            >
+              Clear Member Filter (Showing: {memberBazarList.find((m) => m.memberId === memberFilter)?.memberName})
+            </button>
+          )}
+        </div>
+
+        {memberBazarList.length === 0 ? (
+          <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            No members have recorded bazar for this month yet.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+            {memberBazarList.map((m) => {
+              const isSelected = memberFilter === m.memberId;
+              const pct = totalBazarAmount > 0 ? Math.round((m.totalAmount / totalBazarAmount) * 100) : 0;
+
+              return (
+                <div
+                  key={m.memberId}
+                  onClick={() => setMemberFilter(isSelected ? 'all' : m.memberId)}
+                  style={{
+                    background: isSelected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(11, 15, 25, 0.6)',
+                    border: isSelected ? '2px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem 0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Click to filter expenses by this member"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: isSelected ? 'var(--brand-primary)' : 'rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#fff',
+                      }}>
+                        {m.memberName.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{m.memberName}</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                      {m.tripCount} trip{m.tripCount !== 1 ? 's' : ''} ({pct}%)
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Bazar Done:</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--brand-primary)' }}>
+                      {formatCurrency(m.totalAmount, settings?.currency_symbol)}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
+                    <span>Shared Fund: {formatCurrency(m.sharedFundAmount, settings?.currency_symbol)}</span>
+                    <span style={{ color: 'var(--accent-teal)' }}>Personal: {formatCurrency(m.personalCreditAmount, settings?.currency_symbol)}</span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '2px', marginTop: '0.45rem', overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '2px' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Filter and Search Bar */}
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
@@ -187,6 +316,21 @@ export const BazarPage: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '2.2rem' }}
             />
+          </div>
+
+          <div style={{ flex: '0 1 180px' }}>
+            <select
+              className="form-control"
+              value={memberFilter}
+              onChange={(e) => setMemberFilter(e.target.value)}
+            >
+              <option value="all">All Shoppers (Members)</option>
+              {memberBazarList.map((m) => (
+                <option key={m.memberId} value={m.memberId}>
+                  {m.memberName} ({formatCurrency(m.totalAmount, settings?.currency_symbol)})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ flex: '0 1 180px' }}>

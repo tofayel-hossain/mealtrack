@@ -17,6 +17,9 @@ import {
   FileCheck2,
   Sun,
   Moon,
+  Home,
+  Settings2,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMealSystem } from '../context/MealSystemContext';
@@ -24,6 +27,7 @@ import { StatCard } from '../components/StatCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { AddDepositModal } from '../components/AddDepositModal';
+import { SetMonthlyCostsModal } from '../components/SetMonthlyCostsModal';
 import { EmptyState } from '../components/EmptyState';
 import { CreateSystemModal } from '../components/CreateSystemModal';
 import { formatCurrency, formatMealRate, formatDate, getMealCutoffInfo, getDhakaTodayDateString } from '../utils/formatters';
@@ -54,6 +58,7 @@ export const DashboardPage: React.FC = () => {
   const [recentLedger, setRecentLedger] = useState<FinancialLedgerEntry[]>([]);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showCostsModal, setShowCostsModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const todayStr = getDhakaTodayDateString();
@@ -263,9 +268,18 @@ export const DashboardPage: React.FC = () => {
             <ShoppingBag size={15} /> Add Expense
           </button>
           {activeRole === 'manager' && (
-            <button onClick={() => setShowDepositModal(true)} className="btn btn-primary btn-sm">
-              <Wallet size={15} /> Log Deposit
-            </button>
+            <>
+              <button
+                onClick={() => setShowCostsModal(true)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+              >
+                <Settings2 size={14} color="var(--accent-indigo)" /> Set Costs & Rent
+              </button>
+              <button onClick={() => setShowDepositModal(true)} className="btn btn-primary btn-sm">
+                <Wallet size={15} /> Log Deposit
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -399,41 +413,88 @@ export const DashboardPage: React.FC = () => {
       {/* VIEW: PERSONAL MEMBER DASHBOARD */}
       {activeTab === 'personal' && (
         <>
+          {/* PROMINENT NEED TO PAY / SURPLUS BANNER */}
+          {mySummary && (
+            <div
+              className="card"
+              style={{
+                background: mySummary.amount_need_to_pay > 0
+                  ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)'
+                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                border: mySummary.amount_need_to_pay > 0
+                  ? '1px solid rgba(244, 63, 94, 0.4)'
+                  : '1px solid rgba(16, 185, 129, 0.4)',
+                marginBottom: '1.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: mySummary.amount_need_to_pay > 0 ? 'var(--color-debt)' : 'var(--brand-primary)', marginBottom: '0.25rem' }}>
+                    {mySummary.amount_need_to_pay > 0 ? 'Monthly Payment Due' : 'Account Status: Fully Clear'}
+                  </div>
+                  <h2 style={{ fontSize: '2.1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', margin: '0.2rem 0', color: mySummary.amount_need_to_pay > 0 ? 'var(--color-debt)' : 'var(--brand-primary)' }}>
+                    {mySummary.amount_need_to_pay > 0 ? (
+                      `Need to Pay: ${formatCurrency(mySummary.amount_need_to_pay, settings?.currency_symbol)}`
+                    ) : mySummary.surplus_advance > 0 ? (
+                      `Advance Surplus: +${formatCurrency(mySummary.surplus_advance, settings?.currency_symbol)}`
+                    ) : (
+                      'All Settled (৳0.00 Due)'
+                    )}
+                  </h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Total Month Bill: <strong>{formatCurrency(mySummary.total_billed, settings?.currency_symbol)}</strong> (Meals: {formatCurrency(mySummary.meal_cost, settings?.currency_symbol)} + Shared Bills: {formatCurrency(mySummary.shared_fixed_cost, settings?.currency_symbol)} + Room Rent: {formatCurrency(mySummary.house_rent, settings?.currency_symbol)}) • Already Paid: <strong>{formatCurrency(mySummary.total_paid, settings?.currency_symbol)}</strong>
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => setShowDepositModal(true)} className="btn btn-primary btn-sm">
+                    <Wallet size={15} /> Submit / Record Deposit
+                  </button>
+                  <Link to="/accounting" className="btn btn-secondary btn-sm">
+                    View Statement <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
             <StatCard
-              title="Current Balance"
-              value={formatCurrency(mySummary?.closing_balance, settings?.currency_symbol)}
-              subtitle={
-                mySummary && mySummary.closing_balance >= 0
-                  ? 'Available credit'
-                  : 'Outstanding debt'
+              title="Need to Pay / Status"
+              value={
+                mySummary && mySummary.amount_need_to_pay > 0
+                  ? `Due: ${formatCurrency(mySummary.amount_need_to_pay, settings?.currency_symbol)}`
+                  : mySummary && mySummary.surplus_advance > 0
+                  ? `+${formatCurrency(mySummary.surplus_advance, settings?.currency_symbol)}`
+                  : '৳0.00'
               }
+              subtitle={mySummary && mySummary.amount_need_to_pay > 0 ? 'Pending payment' : 'No dues pending'}
               icon={Wallet}
-              variant={mySummary && mySummary.closing_balance >= 0 ? 'credit' : 'debt'}
-              badgeText={mySummary?.balance_status?.toUpperCase()}
+              variant={mySummary && mySummary.amount_need_to_pay > 0 ? 'debt' : 'credit'}
+              badgeText={mySummary?.amount_need_to_pay ? 'PAYABLE' : 'CLEAR'}
             />
 
             <StatCard
               title="My Monthly Meals"
               value={`${mySummary?.meal_count ?? 0} meals`}
-              subtitle={`Contribution: ${mySummary?.meal_contribution_pct ?? 0}%`}
+              subtitle={`Meal Cost: ${formatCurrency(mySummary?.meal_cost, settings?.currency_symbol)}`}
               icon={UtensilsCrossed}
               variant="info"
             />
 
             <StatCard
-              title="Meal Rate"
-              value={formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
-              subtitle={`Total Bazar: ${formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}`}
-              icon={TrendingUp}
+              title="My Bazar Contribution"
+              value={formatCurrency(mySummary?.total_bazar_done, settings?.currency_symbol)}
+              subtitle={`${mySummary?.bazar_trips_count ?? 0} trips this month`}
+              icon={ShoppingBag}
               variant="primary"
             />
 
             <StatCard
-              title="My Meal Cost"
-              value={formatCurrency(mySummary?.meal_cost, settings?.currency_symbol)}
-              subtitle={`Deposits: ${formatCurrency(mySummary?.deposits, settings?.currency_symbol)}`}
-              icon={DollarSign}
+              title="Room Rent & Bills"
+              value={formatCurrency((mySummary?.house_rent ?? 0) + (mySummary?.shared_fixed_cost ?? 0), settings?.currency_symbol)}
+              subtitle={`Rent: ${formatCurrency(mySummary?.house_rent, settings?.currency_symbol)} | Bills: ${formatCurrency(mySummary?.shared_fixed_cost, settings?.currency_symbol)}`}
+              icon={Home}
               variant="warning"
             />
           </div>
@@ -442,8 +503,8 @@ export const DashboardPage: React.FC = () => {
           <div className="card" style={{ marginBottom: '1.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3>Personal Financial Statement ({currentPeriod})</h3>
-                <p>Opening + Deposits + Personal Credits + Adjustments − Meal Cost = Closing Balance</p>
+                <h3>Personal Financial Breakdown ({currentPeriod})</h3>
+                <p>Total Billed (Meals + Fixed Bills + House Rent) − Total Paid = Net Payable</p>
               </div>
               <Link to="/accounting" className="btn btn-secondary btn-sm">
                 Full Statement <ArrowRight size={14} />
@@ -452,7 +513,7 @@ export const DashboardPage: React.FC = () => {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
               gap: '1rem',
               padding: '1rem',
               background: 'rgba(11, 15, 25, 0.6)',
@@ -460,37 +521,55 @@ export const DashboardPage: React.FC = () => {
               border: '1px solid var(--border-subtle)',
             }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>1. Opening Balance</span>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: mySummary && mySummary.opening_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
-                  {formatCurrency(mySummary?.opening_balance, settings?.currency_symbol)}
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>1. Meal Cost</span>
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-debt)' }}>
+                  {formatCurrency(mySummary?.meal_cost, settings?.currency_symbol)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>2. Deposits (+)</span>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--brand-primary)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>2. Shared Bills (Fix)</span>
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-teal)' }}>
+                  {formatCurrency(mySummary?.shared_fixed_cost, settings?.currency_symbol)}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>3. Room Rent</span>
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-indigo)' }}>
+                  {formatCurrency(mySummary?.house_rent, settings?.currency_symbol)}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Billed</span>
+                <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-debt)' }}>
+                  {formatCurrency(mySummary?.total_billed, settings?.currency_symbol)}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Deposits Paid</span>
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--brand-primary)' }}>
                   +{formatCurrency(mySummary?.deposits, settings?.currency_symbol)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>3. Personal Bazar Credits (+)</span>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-teal)' }}>
-                  +{formatCurrency(mySummary?.personal_bazar_credits, settings?.currency_symbol)}
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bazar Shopped</span>
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-teal)' }}>
+                  +{formatCurrency(mySummary?.total_bazar_done, settings?.currency_symbol)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>4. Meal Cost (−)</span>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-debt)' }}>
-                  -{formatCurrency(mySummary?.meal_cost, settings?.currency_symbol)}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>5. Closing Balance</span>
-                <div style={{ fontWeight: 800, fontSize: '1.25rem', color: mySummary && mySummary.closing_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
-                  {formatCurrency(mySummary?.closing_balance, settings?.currency_symbol)}
+                <span style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 700 }}>Net Need to Pay</span>
+                <div style={{ fontWeight: 800, fontSize: '1.25rem', color: mySummary && mySummary.amount_need_to_pay > 0 ? 'var(--color-debt)' : 'var(--color-credit)' }}>
+                  {mySummary && mySummary.amount_need_to_pay > 0
+                    ? formatCurrency(mySummary.amount_need_to_pay, settings?.currency_symbol)
+                    : mySummary && mySummary.surplus_advance > 0
+                    ? `+${formatCurrency(mySummary.surplus_advance, settings?.currency_symbol)} (Surplus)`
+                    : '৳0.00'}
                 </div>
               </div>
             </div>
@@ -551,48 +630,58 @@ export const DashboardPage: React.FC = () => {
         <>
           <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
             <StatCard
+              title="Account Fund in Hand"
+              value={formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
+              subtitle={`Deposits: ${formatCurrency(accounting?.total_deposits, settings?.currency_symbol)} | Spent: ${formatCurrency(accounting?.total_shared_fund_spent, settings?.currency_symbol)}`}
+              icon={Wallet}
+              variant={(accounting?.fund_balance_remaining ?? 0) >= 0 ? 'credit' : 'debt'}
+              badgeText={(accounting?.fund_balance_remaining ?? 0) >= 0 ? 'SURPLUS' : 'DEFICIT'}
+            />
+
+            <StatCard
               title="Total Bazar Expenses"
               value={formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
-              subtitle={`${accounting?.members.length} members`}
+              subtitle={`${accounting?.total_meals ?? 0} meals @ ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
               icon={ShoppingBag}
               variant="warning"
             />
 
             <StatCard
-              title="Finalized Meals"
-              value={`${accounting?.total_meals ?? 0} meals`}
-              subtitle={`Rate: ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
-              icon={UtensilsCrossed}
-              variant="primary"
-            />
-
-            <StatCard
-              title="Total Deposits"
-              value={formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
-              subtitle="Mess fund collected"
-              icon={Wallet}
-              variant="credit"
-            />
-
-            <StatCard
-              title="Active Members"
-              value={accounting?.members.length ?? 0}
-              subtitle="Registered members"
-              icon={Users}
+              title="Shared Fixed Bills"
+              value={formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
+              subtitle={`${formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / member share`}
+              icon={Receipt}
               variant="info"
+            />
+
+            <StatCard
+              title="Total Outstanding Dues"
+              value={formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
+              subtitle="To collect from members"
+              icon={DollarSign}
+              variant="debt"
             />
           </div>
 
           {/* Member Roster & Balance Status */}
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <h3>Member Balances ({currentPeriod})</h3>
-                <p>Transparent figures across all members</p>
+                <h3>Member Balances & Dues to Pay ({currentPeriod})</h3>
+                <p>Transparent breakdown of meals, fixed costs, room rent, and net amount to pay</p>
               </div>
-              <Link to="/accounting" className="btn btn-secondary btn-sm">
-                Full Accounting <ArrowRight size={14} />
-              </Link>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setShowCostsModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Settings2 size={14} /> Set Fixed Costs & Rent
+                </button>
+                <Link to="/accounting" className="btn btn-primary btn-sm">
+                  Full Accounting <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
 
             <div className="table-responsive">
@@ -601,13 +690,13 @@ export const DashboardPage: React.FC = () => {
                   <tr>
                     <th>Member</th>
                     <th>Meals</th>
-                    <th>Contrib %</th>
                     <th>Meal Cost</th>
-                    <th>Opening</th>
+                    <th>Bazar Done</th>
+                    <th>Shared Bills</th>
+                    <th>Room Rent</th>
+                    <th>Total Billed</th>
                     <th>Deposits</th>
-                    <th>Personal Credits</th>
-                    <th>Closing Balance</th>
-                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Need to Pay</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -615,24 +704,34 @@ export const DashboardPage: React.FC = () => {
                     <tr key={m.member_id}>
                       <td style={{ fontWeight: 600 }}>{m.member_name}</td>
                       <td>{m.meal_count}</td>
-                      <td>{m.meal_contribution_pct}%</td>
                       <td>{formatCurrency(m.meal_cost, settings?.currency_symbol)}</td>
-                      <td style={{ color: m.opening_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
-                        {formatCurrency(m.opening_balance, settings?.currency_symbol)}
-                      </td>
-                      <td style={{ color: 'var(--brand-primary)' }}>
-                        {formatCurrency(m.deposits, settings?.currency_symbol)}
+                      <td style={{ color: 'var(--accent-teal)' }}>
+                        {formatCurrency(m.total_bazar_done, settings?.currency_symbol)}
                       </td>
                       <td style={{ color: 'var(--accent-teal)' }}>
-                        {formatCurrency(m.personal_bazar_credits, settings?.currency_symbol)}
+                        {formatCurrency(m.shared_fixed_cost, settings?.currency_symbol)}
                       </td>
-                      <td style={{ fontWeight: 700, color: m.closing_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
-                        {formatCurrency(m.closing_balance, settings?.currency_symbol)}
+                      <td style={{ color: 'var(--accent-indigo)' }}>
+                        {formatCurrency(m.house_rent, settings?.currency_symbol)}
                       </td>
-                      <td>
-                        <span className={`badge ${m.closing_balance >= 0 ? 'badge-credit' : 'badge-debt'}`}>
-                          {m.closing_balance >= 0 ? 'Credit' : 'Debt'}
-                        </span>
+                      <td style={{ fontWeight: 700, color: 'var(--color-debt)' }}>
+                        {formatCurrency(m.total_billed, settings?.currency_symbol)}
+                      </td>
+                      <td style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
+                        {formatCurrency(m.deposits, settings?.currency_symbol)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {m.amount_need_to_pay > 0 ? (
+                          <span className="badge badge-debt" style={{ fontWeight: 800 }}>
+                            Need to Pay: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
+                          </span>
+                        ) : m.surplus_advance > 0 ? (
+                          <span className="badge badge-credit" style={{ fontWeight: 700 }}>
+                            Advance: +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
+                          </span>
+                        ) : (
+                          <span className="badge badge-secondary">Settled (৳0)</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -656,6 +755,16 @@ export const DashboardPage: React.FC = () => {
       <AddDepositModal
         isOpen={showDepositModal}
         onClose={() => setShowDepositModal(false)}
+        onSuccess={() => {
+          loadDashboardData();
+          refreshSystemData();
+        }}
+      />
+
+      <SetMonthlyCostsModal
+        isOpen={showCostsModal}
+        onClose={() => setShowCostsModal(false)}
+        period={currentPeriod}
         onSuccess={() => {
           loadDashboardData();
           refreshSystemData();

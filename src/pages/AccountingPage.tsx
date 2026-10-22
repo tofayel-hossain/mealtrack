@@ -9,9 +9,17 @@ import {
   DollarSign,
   UtensilsCrossed,
   ArrowRight,
+  Home,
+  Receipt,
+  Wallet,
+  Settings2,
+  CheckCircle2,
+  AlertCircle,
+  Users,
 } from 'lucide-react';
 import { useMealSystem } from '../context/MealSystemContext';
 import { getMonthlyAccountingSummary } from '../services/api';
+import { SetMonthlyCostsModal } from '../components/SetMonthlyCostsModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { formatCurrency, formatMealRate, getDhakaTodayDateString } from '../utils/formatters';
@@ -24,6 +32,7 @@ export const AccountingPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>(currentPeriod);
   const [accounting, setAccounting] = useState<MonthlyAccountingSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showCostsModal, setShowCostsModal] = useState<boolean>(false);
 
   const loadAccounting = async () => {
     if (!activeSystem) return;
@@ -47,7 +56,7 @@ export const AccountingPage: React.FC = () => {
   }, [activeSystem?.id, selectedPeriod]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading..." />;
+    return <LoadingSpinner message="Loading monthly accounting calculations..." />;
   }
 
   if (!activeSystem) {
@@ -61,15 +70,17 @@ export const AccountingPage: React.FC = () => {
     );
   }
 
+  const isFundSurplus = (accounting?.fund_balance_remaining ?? 0) >= 0;
+
   return (
     <div className="page-wrapper">
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Monthly Accounting</h1>
+          <h1>Monthly Accounting & Fund Balance</h1>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="month"
             className="form-control"
@@ -77,6 +88,16 @@ export const AccountingPage: React.FC = () => {
             onChange={(e) => setSelectedPeriod(e.target.value)}
             style={{ width: 'auto', padding: '0.5rem 0.75rem' }}
           />
+
+          {activeRole === 'manager' && (
+            <button
+              onClick={() => setShowCostsModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+            >
+              <Settings2 size={15} color="var(--accent-indigo)" /> Set Fixed Costs & Rent
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -108,47 +129,67 @@ export const AccountingPage: React.FC = () => {
         <LoadingSpinner message="Calculating monthly meal rates and balance sheets..." />
       ) : (
         <>
-          {/* MATHEMATICAL FORMULA CARD */}
+          {/* TOTAL FUND IN ACCOUNT AFTER ALL EXPENSES (Cash in Hand / Mess Fund) */}
           <div
             className="card"
             style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(17, 24, 39, 0.85) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              background: isFundSurplus
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(15, 23, 42, 0.9) 100%)'
+                : 'linear-gradient(135deg, rgba(244, 63, 94, 0.14) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              border: isFundSurplus ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(244, 63, 94, 0.35)',
               marginBottom: '1.75rem',
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
               <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--brand-primary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
-                  Monthly Calculation Formula
-                </div>
-                <h3 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-mono)', marginBottom: '0.5rem' }}>
-                  Meal Rate = {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)} ÷ {accounting?.total_meals} meals ={' '}
-                  <span style={{ color: 'var(--brand-primary)' }}>
-                    {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                  <Wallet size={18} color={isFundSurplus ? 'var(--brand-primary)' : 'var(--color-debt)'} />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: isFundSurplus ? 'var(--brand-primary)' : 'var(--color-debt)' }}>
+                    Total Mess Fund in Account (Cash in Hand)
                   </span>
-                </h3>
+                </div>
+                <h2 style={{ fontSize: '2.2rem', fontFamily: 'var(--font-mono)', fontWeight: 800, margin: '0.2rem 0', color: isFundSurplus ? 'var(--brand-primary)' : 'var(--color-debt)' }}>
+                  {formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Equation: Total Member Deposits ({formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}) − Total Mess Fund Spent ({formatCurrency(accounting?.total_shared_fund_spent, settings?.currency_symbol)})
+                </p>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <span className={`badge ${accounting?.status === 'finalized' ? 'badge-credit' : 'badge-warning'}`}>
-                  Month Status: {accounting?.status?.toUpperCase()}
-                </span>
-                {accounting?.status === 'finalized' && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>
-                    Version: v{accounting.version} • Finalized by {accounting.finalized_by_name}
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Deposits Collected</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-indigo)' }}>
+                    +{formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
                   </div>
-                )}
+                </div>
+
+                <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Shared Expenses Spent</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-debt)' }}>
+                    −{formatCurrency(accounting?.total_shared_fund_spent, settings?.currency_symbol)}
+                  </div>
+                </div>
+
+                <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Outstanding Dues</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                    {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Key Figures */}
+          {/* Key Figures Strip */}
           <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
             <div className="card">
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Eligible Bazar Expenses</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Bazar Expenses</span>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.2rem 0' }}>
                 {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                Rate: {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)} / meal
               </div>
             </div>
 
@@ -157,29 +198,94 @@ export const AccountingPage: React.FC = () => {
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--brand-primary)', margin: '0.2rem 0' }}>
                 {accounting?.total_meals} meals
               </div>
-            </div>
-
-            <div className="card">
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Deposits Collected</span>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-indigo)', margin: '0.2rem 0' }}>
-                {formatCurrency(accounting?.total_deposits, settings?.currency_symbol)}
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                {accounting?.members.length} active members
               </div>
             </div>
 
             <div className="card">
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Personal Bazar Credits</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shared Fixed Costs</span>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-teal)', margin: '0.2rem 0' }}>
-                {formatCurrency(accounting?.total_personal_credits, settings?.currency_symbol)}
+                {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>
+                {formatCurrency(accounting?.per_member_fixed_cost, settings?.currency_symbol)} / person
+              </div>
+            </div>
+
+            <div className="card">
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total House Rent</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-indigo)', margin: '0.2rem 0' }}>
+                {formatCurrency(accounting?.total_house_rent, settings?.currency_symbol)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                Individual per room/seat
               </div>
             </div>
           </div>
 
-          {/* COMPREHENSIVE TRANSPARENCY MEMBER BALANCE SHEET */}
+          {/* MONTHLY FIXED COSTS BREAKDOWN STRIP */}
+          {accounting?.fixed_costs_items && accounting.fixed_costs_items.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.75rem', background: 'rgba(15, 23, 42, 0.6)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Receipt size={16} color="var(--accent-teal)" />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Monthly Shared Fixed Costs (Fixed & Split Equally for All)</span>
+                </div>
+                {activeRole === 'manager' && (
+                  <button onClick={() => setShowCostsModal(true)} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}>
+                    Edit Bills & Rent
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {accounting.fixed_costs_items.map((fc) => (
+                  <div
+                    key={fc.id}
+                    style={{
+                      background: 'rgba(31, 41, 55, 0.6)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.45rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.825rem',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>{fc.title}:</span>
+                    <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(fc.amount, settings?.currency_symbol)}</strong>
+                  </div>
+                ))}
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.45rem 0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.825rem',
+                    marginLeft: 'auto',
+                  }}
+                >
+                  <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>Each Member's Share:</span>
+                  <strong>{formatCurrency(accounting.per_member_fixed_cost, settings?.currency_symbol)}</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* COMPREHENSIVE TRANSPARENCY MEMBER BALANCE & NEED TO PAY SHEET */}
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <h3>Individual Member Accounting & Closing Balances ({selectedPeriod})</h3>
-                <p>Standard Equation: Opening + Deposits + Personal Credits + Adjustments − Meal Cost = Closing Balance</p>
+                <h3>Individual Member Accounting & Net Amount to Pay ({selectedPeriod})</h3>
+                <p>
+                  <strong>Total Billed</strong> = Meal Cost + Shared Fixed Bills + Individual Room Rent • <strong>Net Due</strong> = Total Billed − Total Paid
+                </p>
               </div>
             </div>
 
@@ -189,48 +295,82 @@ export const AccountingPage: React.FC = () => {
                   <tr>
                     <th>Member Name</th>
                     <th>Meals</th>
-                    <th>Contrib %</th>
                     <th>Meal Cost</th>
-                    <th>1. Opening Balance</th>
-                    <th>2. Deposits (+)</th>
-                    <th>3. Personal Bazar (+)</th>
-                    <th>4. Adjustments (±)</th>
-                    <th>5. Closing Balance</th>
-                    <th>Status</th>
+                    <th>Shared Bills (Fix)</th>
+                    <th>House Rent</th>
+                    <th style={{ color: 'var(--color-debt)' }}>Total Billed</th>
+                    <th>Opening Bal</th>
+                    <th>Deposits Paid</th>
+                    <th>Bazar Done</th>
+                    <th style={{ color: 'var(--brand-primary)', textAlign: 'right' }}>Need to Pay / Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accounting?.members.map((m) => {
                     const isCredit = m.closing_balance >= 0;
-                    const netAdj = m.positive_adjustments - m.negative_adjustments;
+                    const needsToPay = m.amount_need_to_pay > 0;
 
                     return (
                       <tr key={m.member_id}>
-                        <td style={{ fontWeight: 700 }}>{m.member_name}</td>
+                        <td style={{ fontWeight: 700 }}>
+                          <div>{m.member_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                            {m.bazar_trips_count} bazar trips ({m.meal_contribution_pct}% meals)
+                          </div>
+                        </td>
                         <td>{m.meal_count}</td>
-                        <td style={{ fontSize: '0.85rem' }}>{m.meal_contribution_pct}%</td>
-                        <td style={{ fontWeight: 600, color: 'var(--color-debt)' }}>
+                        <td style={{ fontWeight: 600 }}>
                           {formatCurrency(m.meal_cost, settings?.currency_symbol)}
                         </td>
-                        <td style={{ color: m.opening_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)' }}>
+                        <td style={{ color: 'var(--accent-teal)' }}>
+                          {formatCurrency(m.shared_fixed_cost, settings?.currency_symbol)}
+                        </td>
+                        <td style={{ color: 'var(--accent-indigo)' }}>
+                          {formatCurrency(m.house_rent, settings?.currency_symbol)}
+                        </td>
+                        <td style={{ fontWeight: 700, color: 'var(--color-debt)' }}>
+                          {formatCurrency(m.total_billed, settings?.currency_symbol)}
+                        </td>
+                        <td style={{ color: m.opening_balance >= 0 ? 'var(--color-credit)' : 'var(--color-debt)', fontSize: '0.85rem' }}>
                           {formatCurrency(m.opening_balance, settings?.currency_symbol)}
                         </td>
-                        <td style={{ color: 'var(--brand-primary)' }}>
+                        <td style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
                           +{formatCurrency(m.deposits, settings?.currency_symbol)}
                         </td>
-                        <td style={{ color: 'var(--accent-teal)' }}>
-                          +{formatCurrency(m.personal_bazar_credits, settings?.currency_symbol)}
+                        <td style={{ color: 'var(--accent-teal)', fontSize: '0.85rem' }}>
+                          +{formatCurrency(m.total_bazar_done, settings?.currency_symbol)}
                         </td>
-                        <td style={{ color: netAdj >= 0 ? 'var(--text-main)' : 'var(--color-debt)' }}>
-                          {netAdj >= 0 ? `+${formatCurrency(netAdj, settings?.currency_symbol)}` : formatCurrency(netAdj, settings?.currency_symbol)}
-                        </td>
-                        <td style={{ fontWeight: 800, fontSize: '1rem', color: isCredit ? 'var(--color-credit)' : 'var(--color-debt)' }}>
-                          {formatCurrency(m.closing_balance, settings?.currency_symbol)}
-                        </td>
-                        <td>
-                          <span className={`badge ${isCredit ? 'badge-credit' : 'badge-debt'}`}>
-                            {isCredit ? 'Credit (Advance)' : 'Debt (Owes)'}
-                          </span>
+                        <td style={{ textAlign: 'right' }}>
+                          {needsToPay ? (
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                              <span
+                                className="badge badge-debt"
+                                style={{
+                                  fontSize: '0.88rem',
+                                  padding: '0.35rem 0.65rem',
+                                  fontWeight: 800,
+                                  boxShadow: '0 2px 8px rgba(244, 63, 94, 0.25)',
+                                }}
+                              >
+                                Need to Pay: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
+                              </span>
+                            </div>
+                          ) : m.surplus_advance > 0 ? (
+                            <span
+                              className="badge badge-credit"
+                              style={{
+                                fontSize: '0.85rem',
+                                padding: '0.3rem 0.6rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Advance Surplus: +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
+                            </span>
+                          ) : (
+                            <span className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
+                              Fully Settled (৳0)
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -259,6 +399,17 @@ export const AccountingPage: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Set Monthly Costs Modal */}
+      <SetMonthlyCostsModal
+        isOpen={showCostsModal}
+        onClose={() => setShowCostsModal(false)}
+        period={selectedPeriod}
+        onSuccess={() => {
+          loadAccounting();
+        }}
+      />
     </div>
   );
 };
+

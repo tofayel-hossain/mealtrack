@@ -206,19 +206,52 @@ export interface AccountingPeriod {
   notes?: string | null;
 }
 
+export type FixedCostCategory = 'cook' | 'wifi' | 'electricity' | 'gas' | 'waste' | 'cleaning' | 'other';
+
+export interface FixedCostItem {
+  id: string;
+  system_id?: string;
+  period?: string;
+  title: string;
+  amount: number;
+  category: FixedCostCategory;
+}
+
+export interface MemberRentItem {
+  member_id: string;
+  house_rent: number;
+  member_name?: string;
+}
+
+export interface MonthlyCostsConfig {
+  period: string;
+  fixedCosts: FixedCostItem[];
+  totalFixedCost: number;
+  perMemberFixedCost: number;
+  memberRents: Record<string, number>; // member_id -> house_rent
+}
+
 export interface MonthlyMemberSummary {
   member_id: string;
   member_name: string;
   opening_balance: number;
   deposits: number;
   personal_bazar_credits: number;
+  total_bazar_done: number; // Total value of groceries purchased by this member (shared + personal)
+  bazar_trips_count: number;
   meal_count: number;
   meal_cost: number;
   meal_contribution_pct: number;
+  shared_fixed_cost: number; // Equal per-member share of mess bills (cook, wifi, electricity, etc.)
+  house_rent: number;        // Individual room/seat rent set by manager
+  total_billed: number;      // meal_cost + shared_fixed_cost + house_rent + other_charges
+  total_paid: number;        // deposits + personal_bazar_credits + opening_balance + positive_adjustments
+  amount_need_to_pay: number;// If total_billed > total_paid: exact net amount member must pay to mess
+  surplus_advance: number;   // If total_paid > total_billed: advance surplus credit
   positive_adjustments: number;
   negative_adjustments: number;
   other_charges: number;
-  closing_balance: number;
+  closing_balance: number;   // total_paid - total_billed (positive = credit, negative = debt)
   balance_status: 'credit' | 'debt' | 'settled';
 }
 
@@ -232,7 +265,15 @@ export interface MonthlyAccountingSummary {
   is_meal_rate_available: boolean;
   total_deposits: number;
   total_personal_credits: number;
+  // Account & Fund Ledger Metrics
+  total_shared_fund_spent: number;  // Shared bazar + shared fixed costs paid from mess fund
+  fund_balance_remaining: number;   // Total Deposits - Total Shared Fund Spent (Cash in hand)
+  total_fixed_costs: number;        // Sum of cook, wifi, utility bills for the month
+  per_member_fixed_cost: number;    // Equal share divided among active members
+  total_house_rent: number;         // Total house rent sum across all members
+  total_amount_due: number;         // Sum of amount_need_to_pay across all members
   members: MonthlyMemberSummary[];
+  fixed_costs_items: FixedCostItem[];
   finalized_at?: string | null;
   finalized_by_name?: string | null;
   notes?: string | null;
