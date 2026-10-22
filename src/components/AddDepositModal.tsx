@@ -78,7 +78,7 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.15rem' }}>Record Member Deposit</h3>
+          <h3 style={{ fontSize: '1.1rem' }}>Add Deposit</h3>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
           </button>
@@ -90,14 +90,14 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
               <div style={{
                 background: 'rgba(244, 63, 94, 0.15)',
                 border: '1px solid rgba(244, 63, 94, 0.3)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--color-debt)',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <AlertCircle size={16} />
                 <span>{error}</span>
@@ -136,7 +136,7 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Deposit Date</label>
+                <label className="form-label">Date</label>
                 <input
                   type="date"
                   className="form-control"
@@ -149,7 +149,7 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
 
             <div className="grid-cols-2">
               <div className="form-group">
-                <label className="form-label">Payment Method</label>
+                <label className="form-label">Method</label>
                 <select
                   className="form-control"
                   value={paymentMethod}
@@ -164,7 +164,7 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Trx Reference</label>
+                <label className="form-label">Reference</label>
                 <input
                   type="text"
                   className="form-control"
@@ -192,7 +192,7 @@ export const AddDepositModal: React.FC<AddDepositModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-              {loading ? 'Recording...' : 'Record Deposit'}
+              {loading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

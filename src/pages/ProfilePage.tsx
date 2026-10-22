@@ -109,16 +109,11 @@ export const ProfilePage: React.FC = () => {
       <div style={{ marginBottom: '1.75rem' }}>
         <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <User size={28} color="var(--brand-primary)" />
-          Account & Profile Settings
+          Profile
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Manage your display name, contact phone number, account password, and mess memberships.
-        </p>
       </div>
 
-      {/* ========================================================================= */}
-      {/* CARD 1: PROFILE INFORMATION (NAME & PHONE)                                */}
-      {/* ========================================================================= */}
+      {/* CARD 1: PROFILE INFORMATION */}
       <div className="card" style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)' }}>
           {user?.avatar_url ? (
@@ -139,7 +134,6 @@ export const ProfilePage: React.FC = () => {
               color: '#ffffff',
               fontSize: '1.75rem',
               fontWeight: 800,
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
             }}>
               {user?.full_name?.charAt(0).toUpperCase() || <User size={30} />}
             </div>
@@ -148,12 +142,12 @@ export const ProfilePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0 }}>{user?.full_name || 'Member'}</h2>
               <span className="badge badge-credit" style={{ fontSize: '0.72rem' }}>
-                Active Account
+                Active
               </span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Mail size={14} color="var(--text-dim)" />
-              {user?.email || 'No email attached'}
+              {user?.email || 'No email'}
             </p>
           </div>
         </div>
@@ -206,19 +200,16 @@ export const ProfilePage: React.FC = () => {
                   type="text"
                   className="form-control"
                   style={{ paddingLeft: '2.4rem' }}
-                  placeholder="Your Full Name"
+                  placeholder="Full Name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem', display: 'block' }}>
-                This name is displayed in meal sheets, bazar entries, deposits, and reports.
-              </span>
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>Phone Number</label>
+              <label className="form-label" style={{ fontWeight: 600 }}>Phone</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
@@ -227,12 +218,9 @@ export const ProfilePage: React.FC = () => {
                   style={{ paddingLeft: '2.4rem' }}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 01700-000000"
+                  placeholder="Phone"
                 />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem', display: 'block' }}>
-                Visible to mess members and manager for emergency contact.
-              </span>
             </div>
           </div>
 
@@ -241,26 +229,21 @@ export const ProfilePage: React.FC = () => {
               type="submit"
               className="btn btn-primary"
               disabled={profileSaving}
-              style={{ minWidth: '150px' }}
+              style={{ minWidth: '120px' }}
             >
               <Save size={16} />
-              {profileSaving ? 'Saving Changes...' : 'Save Profile Changes'}
+              {profileSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
       </div>
 
-      {/* ========================================================================= */}
-      {/* CARD 2: CHANGE PASSWORD & SECURITY                                        */}
-      {/* ========================================================================= */}
+      {/* CARD 2: PASSWORD */}
       <div className="card" style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
           <KeyRound size={20} color="var(--accent-indigo)" />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Change Account Password</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Password</h2>
         </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-          Update your login password. Must contain at least 6 characters.
-        </p>
 
         {passwordSuccessMsg && (
           <div style={{
@@ -301,7 +284,7 @@ export const ProfilePage: React.FC = () => {
         <form onSubmit={handleChangePassword}>
           <div className="form-group" style={{ marginBottom: '1rem' }}>
             <label className="form-label" style={{ fontWeight: 600 }}>
-              Current Password <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 400 }}>(optional if setting new password)</span>
+              Current Password
             </label>
             <div style={{ position: 'relative' }}>
               <Lock size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -309,7 +292,7 @@ export const ProfilePage: React.FC = () => {
                 type={showCurrentPassword ? 'text' : 'password'}
                 className="form-control"
                 style={{ paddingLeft: '2.4rem', paddingRight: '2.5rem' }}
-                placeholder="Enter current password"
+                placeholder="Current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 autoComplete="current-password"
@@ -330,7 +313,6 @@ export const ProfilePage: React.FC = () => {
                   alignItems: 'center',
                   padding: '4px',
                 }}
-                title={showCurrentPassword ? 'Hide password' : 'Show password'}
               >
                 {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -348,7 +330,7 @@ export const ProfilePage: React.FC = () => {
                   type={showNewPassword ? 'text' : 'password'}
                   className="form-control"
                   style={{ paddingLeft: '2.4rem', paddingRight: '2.5rem' }}
-                  placeholder="Min. 6 characters"
+                  placeholder="Min 6 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   autoComplete="new-password"
@@ -370,7 +352,6 @@ export const ProfilePage: React.FC = () => {
                     alignItems: 'center',
                     padding: '4px',
                   }}
-                  title={showNewPassword ? 'Hide password' : 'Show password'}
                 >
                   {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -387,7 +368,7 @@ export const ProfilePage: React.FC = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   className="form-control"
                   style={{ paddingLeft: '2.4rem', paddingRight: '2.5rem' }}
-                  placeholder="Confirm new password"
+                  placeholder="Confirm password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
@@ -409,35 +390,12 @@ export const ProfilePage: React.FC = () => {
                     alignItems: 'center',
                     padding: '4px',
                   }}
-                  title={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
           </div>
-
-          {/* Validation feedback indicator */}
-          {newPassword && confirmPassword && (
-            <div style={{
-              fontSize: '0.8rem',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: newPassword === confirmPassword ? 'var(--brand-primary)' : 'var(--color-debt)',
-            }}>
-              {newPassword === confirmPassword ? (
-                <>
-                  <CheckCircle size={14} /> Passwords match
-                </>
-              ) : (
-                <>
-                  <AlertCircle size={14} /> Passwords do not match
-                </>
-              )}
-            </div>
-          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
             <button
@@ -447,25 +405,23 @@ export const ProfilePage: React.FC = () => {
               style={{ minWidth: '150px' }}
             >
               <KeyRound size={16} />
-              {passwordSaving ? 'Updating Password...' : 'Update Password'}
+              {passwordSaving ? 'Saving...' : 'Save Password'}
             </button>
           </div>
         </form>
       </div>
 
-      {/* ========================================================================= */}
-      {/* CARD 3: MY MEAL SYSTEMS                                                   */}
-      {/* ========================================================================= */}
+      {/* CARD 3: MY MEAL SYSTEMS */}
       <div className="card" style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <Building size={20} color="var(--brand-primary)" />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>My Mess Systems</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Mess Systems</h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {systems.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              You are not a member of any mess system yet. Create or join one using an invitation code.
+              No mess systems found.
             </p>
           ) : (
             systems.map((s) => {
@@ -486,19 +442,19 @@ export const ProfilePage: React.FC = () => {
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      System Code: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{s.code}</span>
+                      Code: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{s.code}</span>
                     </div>
                   </div>
 
                   <div>
                     {isActive ? (
-                      <span className="badge badge-credit">Active System</span>
+                      <span className="badge badge-credit">Active</span>
                     ) : (
                       <button
                         onClick={() => setActiveSystem(s)}
                         className="btn btn-secondary btn-sm"
                       >
-                        Switch to This Mess
+                        Switch
                       </button>
                     )}
                   </div>
@@ -509,15 +465,10 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* CARD 4: SIGN OUT                                                          */}
-      {/* ========================================================================= */}
+      {/* CARD 4: SIGN OUT */}
       <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0' }}>Sign Out</h3>
-          <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0 }}>
-            Sign out of your account on this device.
-          </p>
+          <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Sign Out</h3>
         </div>
         <button
           onClick={() => signOut()}

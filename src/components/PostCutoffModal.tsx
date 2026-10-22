@@ -94,8 +94,8 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertTriangle size={20} color="var(--accent-amber)" />
-            <h3 style={{ fontSize: '1.15rem' }}>Post-Cutoff Meal Adjustment</h3>
+            <AlertTriangle size={18} color="var(--accent-amber)" />
+            <h3 style={{ fontSize: '1.1rem' }}>Meal Adjustment</h3>
           </div>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
@@ -111,30 +111,24 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                 padding: '0.6rem 0.8rem',
                 borderRadius: 'var(--radius-md)',
                 fontSize: '0.85rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 {error}
               </div>
             )}
 
-            <div style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div><strong>Member:</strong> {memberName}</div>
-              <div style={{ marginTop: '0.2rem' }}><strong>Date:</strong> {record.date}</div>
-              <div style={{ marginTop: '0.2rem' }}>
-                <strong>Current Status:</strong>{' '}
-                {record.is_turned_off
-                  ? 'Off (0)'
-                  : `${record.meal_count ?? 2} (Afternoon: ${record.lunch_turned_off ? 'Off' : '1'}, Night: ${record.dinner_turned_off ? 'Off' : '1'})`}
-              </div>
+              <div><strong>Date:</strong> {record.date}</div>
             </div>
 
             {/* Slot Toggles */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label">Meal Slots</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.4rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label className="form-label">Slots</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem' }}>
                 {/* Afternoon Meal Slot */}
                 <div style={{
-                  padding: '0.75rem',
+                  padding: '0.6rem',
                   borderRadius: 'var(--radius-md)',
                   border: lunchOff ? '1px solid var(--border-subtle)' : '1px solid rgba(245, 158, 11, 0.4)',
                   background: lunchOff ? 'rgba(255, 255, 255, 0.02)' : 'rgba(245, 158, 11, 0.08)',
@@ -144,7 +138,7 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                       <Sun size={15} color="var(--accent-amber)" /> Afternoon
                     </span>
                     <span style={{ fontSize: '0.75rem', color: lunchOff ? 'var(--accent-rose)' : 'var(--brand-primary)', fontWeight: 600 }}>
-                      {lunchOff ? 'Cut' : 'ON'}
+                      {lunchOff ? 'Cut' : 'Active'}
                     </span>
                   </div>
                   <button
@@ -153,13 +147,13 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                     className={lunchOff ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}
                     style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}
                   >
-                    {lunchOff ? 'Turn Afternoon ON' : 'Cut Afternoon'}
+                    {lunchOff ? 'Take' : 'Cut'}
                   </button>
                 </div>
 
                 {/* Night Meal Slot */}
                 <div style={{
-                  padding: '0.75rem',
+                  padding: '0.6rem',
                   borderRadius: 'var(--radius-md)',
                   border: dinnerOff ? '1px solid var(--border-subtle)' : '1px solid rgba(99, 102, 241, 0.4)',
                   background: dinnerOff ? 'rgba(255, 255, 255, 0.02)' : 'rgba(99, 102, 241, 0.08)',
@@ -169,7 +163,7 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                       <Moon size={15} color="var(--brand-secondary)" /> Night
                     </span>
                     <span style={{ fontSize: '0.75rem', color: dinnerOff ? 'var(--accent-rose)' : 'var(--brand-primary)', fontWeight: 600 }}>
-                      {dinnerOff ? 'Cut' : 'ON'}
+                      {dinnerOff ? 'Cut' : 'Active'}
                     </span>
                   </div>
                   <button
@@ -178,20 +172,20 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                     className={dinnerOff ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}
                     style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem' }}
                   >
-                    {dinnerOff ? 'Turn Night ON' : 'Cut Night'}
+                    {dinnerOff ? 'Take' : 'Cut'}
                   </button>
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={handleFullCut}
                   className="btn btn-secondary btn-sm"
                   style={{ fontSize: '0.75rem', color: 'var(--accent-rose)' }}
                 >
-                  Cut Full Meal
+                  Cut Full
                 </button>
                 <button
                   type="button"
@@ -199,7 +193,7 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
                   className="btn btn-secondary btn-sm"
                   style={{ fontSize: '0.75rem' }}
                 >
-                  Both ON
+                  Take Full
                 </button>
               </div>
             </div>
@@ -209,6 +203,7 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
               <textarea
                 className="form-control"
                 rows={2}
+                placeholder="Reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
@@ -221,7 +216,7 @@ export const PostCutoffModal: React.FC<PostCutoffModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-              {loading ? 'Saving...' : 'Apply Correction'}
+              {loading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

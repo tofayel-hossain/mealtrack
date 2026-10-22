@@ -72,20 +72,20 @@ export const AuditHistoryPage: React.FC = () => {
   return (
     <div className="page-wrapper">
       {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <h1>Audit History</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Audit</h1>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="card" style={{ padding: '0.85rem', marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
           <div style={{ flex: '1 1 240px', position: 'relative' }}>
             <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Search by actor, action, or reason..."
+              placeholder="Search..."
               className="form-control"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -99,16 +99,16 @@ export const AuditHistoryPage: React.FC = () => {
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
             >
-              <option value="all">All Action Types</option>
-              <option value="POST_CUTOFF_MEAL_CORRECTION">Post-Cutoff Meal Correction</option>
+              <option value="all">All Actions</option>
+              <option value="POST_CUTOFF_MEAL_CORRECTION">Meal Correction</option>
               <option value="EXPENSE_RECORDED">Expense Recorded</option>
               <option value="EXPENSE_REVERSED">Expense Reversed</option>
               <option value="DEPOSIT_RECORDED">Deposit Recorded</option>
               <option value="DEPOSIT_REVERSED">Deposit Reversed</option>
-              <option value="COOKING_STATUS_CHANGED">Cooking Status Changed</option>
-              <option value="MANAGER_ROLE_TRANSFERRED">Manager Role Transferred</option>
-              <option value="MONTHLY_REPORT_FINALIZED">Monthly Report Finalized</option>
-              <option value="SYSTEM_SETTINGS_UPDATED">System Settings Updated</option>
+              <option value="COOKING_STATUS_CHANGED">Cooking Status</option>
+              <option value="MANAGER_ROLE_TRANSFERRED">Manager Transferred</option>
+              <option value="MONTHLY_REPORT_FINALIZED">Closing Finalized</option>
+              <option value="SYSTEM_SETTINGS_UPDATED">Settings Updated</option>
             </select>
           </div>
         </div>
@@ -117,66 +117,66 @@ export const AuditHistoryPage: React.FC = () => {
       {/* Audit Log Stream */}
       <div className="card">
         {loading ? (
-          <LoadingSpinner message="Retrieving audit history..." />
+          <LoadingSpinner message="Loading..." />
         ) : filteredLogs.length === 0 ? (
           <EmptyState
             icon={History}
-            title="No Audit Records Found"
-            description="No audit logs matched your search filters."
+            title="No Records"
+            description="No logs found."
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {filteredLogs.map((log) => (
               <div
                 key={log.id}
                 style={{
-                  padding: '1rem',
+                  padding: '0.85rem',
                   background: 'rgba(11, 15, 25, 0.6)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                 }}
               >
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.4)' }}>
                       {log.action_type.replace(/_/g, ' ')}
                     </span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Target: <strong style={{ color: 'var(--text-main)' }}>{log.target_type}</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {log.target_type}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                    <Clock size={13} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    <Clock size={12} />
                     <span>{formatDateTime(log.created_at)}</span>
                   </div>
                 </div>
 
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                  Action taken by <strong>{log.actor_name || 'System Member'}</strong>: {log.reason ? `"${log.reason}"` : 'No explicit reason given.'}
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '0.4rem' }}>
+                  <strong>{log.actor_name || 'Member'}</strong>: {log.reason || '—'}
                 </div>
 
                 {/* Diff Viewer if previous or new values exist */}
                 {(log.previous_value || log.new_value) && (
                   <div style={{
                     background: 'var(--bg-secondary)',
-                    padding: '0.6rem 0.8rem',
+                    padding: '0.5rem 0.75rem',
                     borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.775rem',
+                    fontSize: '0.75rem',
                     fontFamily: 'var(--font-mono)',
                     display: 'flex',
                     flexWrap: 'wrap',
-                    gap: '1rem',
+                    gap: '0.75rem',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
                   }}>
                     {log.previous_value && (
                       <div style={{ color: 'var(--color-debt)' }}>
-                        <span style={{ color: 'var(--text-dim)' }}>Previous:</span> {JSON.stringify(log.previous_value)}
+                        <span style={{ color: 'var(--text-dim)' }}>Prev:</span> {JSON.stringify(log.previous_value)}
                       </div>
                     )}
                     {log.new_value && (
                       <div style={{ color: 'var(--brand-primary)' }}>
-                        <span style={{ color: 'var(--text-dim)' }}>New Value:</span> {JSON.stringify(log.new_value)}
+                        <span style={{ color: 'var(--text-dim)' }}>New:</span> {JSON.stringify(log.new_value)}
                       </div>
                     )}
                   </div>

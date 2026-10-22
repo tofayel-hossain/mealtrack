@@ -64,23 +64,20 @@ export const AcceptInvitePage: React.FC = () => {
           <UtensilsCrossed size={32} color="#ffffff" />
         </div>
 
-        <div className="card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Mess Invitation</h2>
-          <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-            You have been invited to join a shared mess on MealTrack.
-          </p>
+        <div className="card" style={{ padding: '1.75rem' }}>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem' }}>Invitation</h2>
 
           <div style={{
             background: 'rgba(11, 15, 25, 0.7)',
-            padding: '1rem',
+            padding: '0.85rem',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-card)',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
           }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
-              Invitation Token
+              Token
             </div>
-            <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--brand-primary)', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '1.15rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--brand-primary)', marginTop: '0.2rem' }}>
               {token || ''}
             </div>
           </div>
@@ -89,7 +86,7 @@ export const AcceptInvitePage: React.FC = () => {
             <div style={{
               background: 'rgba(244, 63, 94, 0.15)',
               border: '1px solid rgba(244, 63, 94, 0.3)',
-              padding: '0.75rem',
+              padding: '0.65rem',
               borderRadius: 'var(--radius-md)',
               color: 'var(--color-debt)',
               fontSize: '0.85rem',
@@ -108,13 +105,14 @@ export const AcceptInvitePage: React.FC = () => {
             <div style={{
               background: 'rgba(16, 185, 129, 0.15)',
               border: '1px solid rgba(16, 185, 129, 0.3)',
-              padding: '1rem',
+              padding: '0.75rem',
               borderRadius: 'var(--radius-md)',
               color: 'var(--brand-primary)',
               fontWeight: 600,
+              fontSize: '0.9rem',
             }}>
-              <CheckCircle size={20} style={{ display: 'inline', marginRight: '6px' }} />
-              Successfully joined mess! Redirecting to dashboard...
+              <CheckCircle size={18} style={{ display: 'inline', marginRight: '6px' }} />
+              Joined! Redirecting...
             </div>
           ) : (
             <button
@@ -123,13 +121,13 @@ export const AcceptInvitePage: React.FC = () => {
               className="btn btn-primary btn-lg"
               style={{ width: '100%' }}
             >
-              {loading ? 'Joining...' : 'Accept & Join Mess as Member'}
+              {loading ? 'Joining...' : 'Join Mess'}
             </button>
           )}
 
-          <div style={{ marginTop: '1.5rem' }}>
+          <div style={{ marginTop: '1.25rem' }}>
             <Link to="/" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none' }}>
-              ← Return to Dashboard
+              Dashboard
             </Link>
           </div>
         </div>

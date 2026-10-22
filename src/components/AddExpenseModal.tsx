@@ -106,7 +106,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.15rem' }}>Record Bazar Expense</h3>
+          <h3 style={{ fontSize: '1.1rem' }}>Add Expense</h3>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
           </button>
@@ -118,14 +118,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               <div style={{
                 background: 'rgba(244, 63, 94, 0.15)',
                 border: '1px solid rgba(244, 63, 94, 0.3)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--color-debt)',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <AlertCircle size={16} />
                 <span>{error}</span>
@@ -134,7 +134,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
             <div className="grid-cols-2">
               <div className="form-group">
-                <label className="form-label">Purchase Date</label>
+                <label className="form-label">Date</label>
                 <input
                   type="date"
                   className="form-control"
@@ -203,20 +203,20 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Funding Source</label>
+                <label className="form-label">Source</label>
                 <select
                   className="form-control"
                   value={fundingSource}
                   onChange={(e) => setFundingSource(e.target.value as FundingSource)}
                 >
-                  <option value="shared_fund">Shared Mess Cash Fund</option>
-                  <option value="personal_credit">Personally Paid by Member</option>
+                  <option value="shared_fund">Shared Fund</option>
+                  <option value="personal_credit">Personal Credit</option>
                 </select>
               </div>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Shop Name</label>
+              <label className="form-label">Shop</label>
               <input
                 type="text"
                 className="form-control"
@@ -231,7 +231,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               <div style={{
                 border: '1px dashed var(--border-card)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 textAlign: 'center',
                 cursor: 'pointer',
                 background: 'rgba(11, 15, 25, 0.4)',
@@ -254,16 +254,16 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                     <img
                       src={receiptPreview}
-                      alt="Receipt preview"
-                      style={{ height: '36px', borderRadius: '4px', objectFit: 'cover' }}
+                      alt="Receipt"
+                      style={{ height: '32px', borderRadius: '4px', objectFit: 'cover' }}
                     />
-                    <span style={{ fontSize: '0.8rem', color: 'var(--brand-primary)' }}>Receipt attached</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--brand-primary)' }}>Attached</span>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <Upload size={16} color="var(--text-muted)" />
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Upload receipt
+                      Upload Receipt
                     </span>
                   </div>
                 )}
@@ -276,7 +276,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-              {loading ? 'Recording...' : 'Record Bazar Expense'}
+              {loading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

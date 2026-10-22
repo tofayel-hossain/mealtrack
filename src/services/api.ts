@@ -254,18 +254,27 @@ export async function createMealSystem(
 }
 
 export async function getSystemSettings(systemId: string): Promise<SystemSettings> {
+  const localOff = localStorage.getItem(`mealtrack_system_off_${systemId}`);
+  const isLocalOff = localOff === 'true';
+
   if (isSupabaseConfigured && supabase) {
-    const { data } = await supabase
-      .from('system_settings')
-      .select('*')
-      .eq('system_id', systemId)
-      .single();
-    if (data) {
-      return {
-        ...data,
-        lunch_cutoff_time: data.lunch_cutoff_time || data.cutoff_time || '10:00:00',
-        dinner_cutoff_time: data.dinner_cutoff_time || '17:00:00',
-      };
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('system_id', systemId)
+        .maybeSingle();
+
+      if (data && !error) {
+        return {
+          ...data,
+          lunch_cutoff_time: data.lunch_cutoff_time || data.cutoff_time || '10:00:00',
+          dinner_cutoff_time: data.dinner_cutoff_time || '17:00:00',
+          is_meal_system_off: data.is_meal_system_off !== undefined ? data.is_meal_system_off : isLocalOff,
+        };
+      }
+    } catch (e) {
+      console.warn('Error fetching system settings from Supabase:', e);
     }
   }
 
@@ -281,6 +290,7 @@ export async function getSystemSettings(systemId: string): Promise<SystemSetting
       dinner_cutoff_time: '17:00:00',
       allow_custom_meals: true,
       auto_assign_meals: true,
+      is_meal_system_off: isLocalOff,
     }
   );
 }
@@ -291,24 +301,40 @@ export async function updateSystemSettings(
   actorId: string
 ): Promise<SystemSettings> {
   const prev = await getSystemSettings(systemId);
-  const updated = { ...prev, ...newSettings, updated_at: new Date().toISOString() };
+  const updated: SystemSettings = { ...prev, ...newSettings, updated_at: new Date().toISOString() };
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('system_settings').upsert(updated);
-  } else {
-    store.settings[systemId] = updated;
+  // Always update in-memory store and local cache
+  store.settings[systemId] = updated;
+  if (updated.is_meal_system_off !== undefined) {
+    localStorage.setItem(`mealtrack_system_off_${systemId}`, updated.is_meal_system_off ? 'true' : 'false');
   }
 
-  await logAuditAction({
-    systemId,
-    actorId,
-    actionType: 'SYSTEM_SETTINGS_UPDATED',
-    targetType: 'system_settings',
-    targetId: systemId,
-    previousValue: prev,
-    newValue: updated,
-    reason: 'System settings adjusted by manager',
-  });
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('system_settings').upsert(updated);
+      if (error) {
+        console.warn('Supabase system_settings upsert error, trying without optional columns:', error);
+        // If column is_meal_system_off does not exist on remote DB yet, upsert without it
+        const { is_meal_system_off, meal_system_off_date, ...safeSettings } = updated as any;
+        await supabase.from('system_settings').upsert(safeSettings);
+      }
+    } catch (err) {
+      console.warn('Fallback upsert failed:', err);
+    }
+  }
+
+  try {
+    await logAuditAction({
+      systemId,
+      actorId,
+      actionType: 'SYSTEM_SETTINGS_UPDATED',
+      targetType: 'system_settings',
+      targetId: systemId,
+      previousValue: prev,
+      newValue: updated,
+      reason: 'Settings updated',
+    });
+  } catch {}
 
   return updated;
 }

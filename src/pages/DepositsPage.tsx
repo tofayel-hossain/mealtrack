@@ -163,7 +163,7 @@ export const DepositsPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Deposits & Ledger</h1>
+          <h1>Deposits</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -181,59 +181,47 @@ export const DepositsPage: React.FC = () => {
                 onClick={() => setShowAdjustmentModal(true)}
                 className="btn btn-secondary btn-sm"
               >
-                <Sliders size={14} /> New Adjustment
+                <Sliders size={14} /> Adjustment
               </button>
               <button
                 onClick={() => setShowAddDepositModal(true)}
                 className="btn btn-primary btn-sm"
               >
-                <Plus size={14} /> Log Member Deposit
+                <Plus size={14} /> Add Deposit
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* TOTAL FUND IN ACCOUNT & CASH IN HAND OVERVIEW */}
+      {/* SUMMARY STAT CARDS */}
       <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
         <div className="card" style={{ borderLeft: '4px solid var(--brand-primary)' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Fund in Account</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fund Balance</span>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: (accounting?.fund_balance_remaining ?? 0) >= 0 ? 'var(--brand-primary)' : 'var(--color-debt)', margin: '0.2rem 0' }}>
             {formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            Cash in hand after expenses
-          </span>
         </div>
 
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Deposits Collected</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Deposits</span>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-indigo)', margin: '0.2rem 0' }}>
             {formatCurrency(totalDeposits, settings?.currency_symbol)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            {deposits.filter((d) => !d.is_reversed).length} verified deposits
-          </span>
         </div>
 
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Fund Spent</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Spent</span>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-debt)', margin: '0.2rem 0' }}>
             {formatCurrency(accounting?.total_shared_fund_spent, settings?.currency_symbol)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            Shared bazar & fixed bills
-          </span>
         </div>
 
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Outstanding Dues</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Due</span>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-warning)', margin: '0.2rem 0' }}>
             {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            Owed by members for {selectedPeriod}
-          </span>
         </div>
       </div>
 
@@ -285,7 +273,7 @@ export const DepositsPage: React.FC = () => {
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div>
-              <h3>Deposits for {selectedPeriod}</h3>
+              <h3>Deposits</h3>
             </div>
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
               Total: <strong style={{ color: 'var(--brand-primary)', fontSize: '1.15rem' }}>{formatCurrency(totalDeposits, settings?.currency_symbol)}</strong>
@@ -293,13 +281,13 @@ export const DepositsPage: React.FC = () => {
           </div>
 
           {loading ? (
-            <LoadingSpinner message="Loading deposit transactions..." />
+            <LoadingSpinner message="Loading..." />
           ) : filteredDeposits.length === 0 ? (
             <EmptyState
               icon={Wallet}
-              title="No Deposits Logged"
-              description={`No member deposits recorded for ${selectedPeriod}.`}
-              actionText={activeRole === 'manager' ? 'Log First Deposit' : undefined}
+              title="No Deposits"
+              description="No deposits recorded."
+              actionText={activeRole === 'manager' ? 'Add Deposit' : undefined}
               onAction={activeRole === 'manager' ? () => setShowAddDepositModal(true) : undefined}
             />
           ) : (
@@ -309,8 +297,8 @@ export const DepositsPage: React.FC = () => {
                   <tr>
                     <th>Date</th>
                     <th>Member</th>
-                    <th>Payment Method</th>
-                    <th>Transaction Reference</th>
+                    <th>Method</th>
+                    <th>Reference</th>
                     <th>Note</th>
                     <th>Recorded By</th>
                     <th style={{ textAlign: 'right' }}>Amount</th>
@@ -377,17 +365,16 @@ export const DepositsPage: React.FC = () => {
       {activeTab === 'ledger' && (
         <div className="card">
           <div style={{ marginBottom: '1rem' }}>
-            <h3>Unified Financial Ledger ({selectedPeriod})</h3>
-            <p>Single source of truth accounting ledger containing opening balances, deposits, personal bazar credits, adjustments, and reversals.</p>
+            <h3>Ledger</h3>
           </div>
 
           {loading ? (
-            <LoadingSpinner message="Loading financial ledger..." />
+            <LoadingSpinner message="Loading..." />
           ) : filteredLedger.length === 0 ? (
             <EmptyState
               icon={Wallet}
-              title="No Ledger Entries"
-              description={`No accounting transactions recorded in the ledger for ${selectedPeriod}.`}
+              title="No Entries"
+              description="No ledger records found."
             />
           ) : (
             <div className="table-responsive">
@@ -396,9 +383,9 @@ export const DepositsPage: React.FC = () => {
                   <tr>
                     <th>Date</th>
                     <th>Member</th>
-                    <th>Transaction Type</th>
+                    <th>Type</th>
                     <th>Description</th>
-                    <th style={{ textAlign: 'right' }}>Ledger Impact</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -436,7 +423,7 @@ export const DepositsPage: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowAdjustmentModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem' }}>Make Financial Balance Adjustment</h3>
+              <h3 style={{ fontSize: '1.15rem' }}>Adjustment</h3>
               <button onClick={() => setShowAdjustmentModal(false)} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
                 ✕
               </button>
@@ -444,18 +431,6 @@ export const DepositsPage: React.FC = () => {
 
             <form onSubmit={handleCreateAdjustment}>
               <div className="modal-body">
-                <div style={{
-                  background: 'rgba(99, 102, 241, 0.1)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                  padding: '0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  color: '#a5b4fc',
-                  fontSize: '0.8rem',
-                  marginBottom: '1rem',
-                }}>
-                  Adjustments allow the manager to correct member balances with an explicit audit justification, avoiding silent data overwrites.
-                </div>
-
                 <div className="form-group">
                   <label className="form-label">Member</label>
                   <select
@@ -474,19 +449,19 @@ export const DepositsPage: React.FC = () => {
 
                 <div className="grid-cols-2">
                   <div className="form-group">
-                    <label className="form-label">Adjustment Type</label>
+                    <label className="form-label">Type</label>
                     <select
                       className="form-control"
                       value={adjType}
                       onChange={(e) => setAdjType(e.target.value as any)}
                     >
-                      <option value="credit">Credit (+) Increase Member Balance</option>
-                      <option value="debit">Debit (−) Decrease Member Balance</option>
+                      <option value="credit">Credit (+)</option>
+                      <option value="debit">Debit (−)</option>
                     </select>
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Amount (BDT ৳)</label>
+                    <label className="form-label">Amount</label>
                     <input
                       type="number"
                       step="0.01"
@@ -501,11 +476,11 @@ export const DepositsPage: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Reason / Justification (Mandatory)</label>
+                  <label className="form-label">Reason</label>
                   <textarea
                     className="form-control"
                     rows={3}
-                    placeholder="e.g. Compensating member for shared cooking supplies purchased outside bazar"
+                    placeholder="Reason"
                     value={adjReason}
                     onChange={(e) => setAdjReason(e.target.value)}
                     required
@@ -518,7 +493,7 @@ export const DepositsPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm" disabled={adjLoading}>
-                  {adjLoading ? 'Saving...' : 'Post Adjustment'}
+                  {adjLoading ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

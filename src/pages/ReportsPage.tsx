@@ -70,7 +70,7 @@ export const ReportsPage: React.FC = () => {
       {/* Header (Hidden on print) */}
       <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Monthly Report</h1>
+          <h1>Reports</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -101,52 +101,45 @@ export const ReportsPage: React.FC = () => {
           </button>
 
           <button onClick={() => window.print()} className="btn btn-primary btn-sm">
-            <Printer size={14} /> Print Statement
+            <Printer size={14} /> Print
           </button>
         </div>
       </div>
 
       {loading ? (
-        <LoadingSpinner message="Generating transparent monthly report..." />
+        <LoadingSpinner message="Loading..." />
       ) : (
         <div className="printable-report" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Print Report Header */}
           <div className="card" style={{ textAlign: 'center', padding: '1.5rem' }}>
-            <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--brand-primary)', fontWeight: 800, letterSpacing: '0.05em' }}>
-              Monthly Statement
-            </div>
             <h2 style={{ fontSize: '1.75rem', margin: '0.35rem 0' }}>{activeSystem?.name}</h2>
             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-              Mess Code: <strong>{activeSystem?.code}</strong> • Accounting Period: <strong>{selectedPeriod}</strong> • Currency: <strong>{settings?.currency_code || ''}</strong>
+              Code: <strong>{activeSystem?.code}</strong> • Period: <strong>{selectedPeriod}</strong>
             </div>
             <div style={{ fontSize: '0.825rem', color: 'var(--brand-primary)', marginTop: '0.35rem', fontWeight: 600 }}>
-              Day-by-Day Accounting: {accounting?.days_elapsed ?? 0} of {accounting?.total_days_in_period ?? 30} days elapsed (Opened: {formatDate(accounting?.meal_open_date)})
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
-              Generated on {formatDateTime(new Date())}
+              {accounting?.days_elapsed ?? 0} of {accounting?.total_days_in_period ?? 30} Days (Opened: {formatDate(accounting?.meal_open_date)})
             </div>
           </div>
 
           {/* Key Figures Header Bar */}
           <div className="grid-cols-4">
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Fund in Account</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fund Balance</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: (accounting?.fund_balance_remaining ?? 0) >= 0 ? 'var(--brand-primary)' : 'var(--color-debt)', marginTop: '0.2rem' }}>
                 {formatCurrency(accounting?.fund_balance_remaining, settings?.currency_symbol)}
               </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Cash in Hand after expenses</span>
             </div>
 
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Bazar Expenses</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bazar Expenses</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>
                 {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
               </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Rate: {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}/meal</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Rate: {formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}</span>
             </div>
 
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Shared Fixed Bills</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fixed Bills</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: '0.2rem' }}>
                 {formatCurrency(accounting?.total_fixed_costs, settings?.currency_symbol)}
               </div>
@@ -154,31 +147,30 @@ export const ReportsPage: React.FC = () => {
             </div>
 
             <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Outstanding Dues</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Due</span>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-warning)', marginTop: '0.2rem' }}>
                 {formatCurrency(accounting?.total_amount_due, settings?.currency_symbol)}
               </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>To collect from members</span>
             </div>
           </div>
 
           {/* MEMBER BALANCE STATEMENT TABLE */}
           <div className="card">
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1.15rem' }}>1. Member Balances & Cost Allocation</h3>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '1.15rem' }}>Member Balances</h3>
             <div className="table-responsive">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Member</th>
-                    <th>Meals ({accounting?.days_elapsed ?? 0}d)</th>
+                    <th>Meals</th>
                     <th>Meal Cost</th>
-                    <th>Shared Bills (Fix)</th>
-                    <th>Room Rent</th>
-                    <th>Total Billed</th>
+                    <th>Fixed</th>
+                    <th>Rent</th>
+                    <th>Billed</th>
                     <th>Deposits</th>
-                    <th>Bazar Shopped</th>
-                    <th>Closing Bal</th>
-                    <th style={{ textAlign: 'right' }}>Need to Pay</th>
+                    <th>Bazar</th>
+                    <th>Balance</th>
+                    <th style={{ textAlign: 'right' }}>Due</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,14 +191,14 @@ export const ReportsPage: React.FC = () => {
                         <td style={{ textAlign: 'right' }}>
                           {m.amount_need_to_pay > 0 ? (
                             <span className="badge badge-debt" style={{ fontWeight: 800 }}>
-                              Need to Pay: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
+                              Due: {formatCurrency(m.amount_need_to_pay, settings?.currency_symbol)}
                             </span>
                           ) : m.surplus_advance > 0 ? (
                             <span className="badge badge-credit" style={{ fontWeight: 700 }}>
-                              Advance: +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
+                              +{formatCurrency(m.surplus_advance, settings?.currency_symbol)}
                             </span>
                           ) : (
-                            <span className="badge badge-secondary">Settled</span>
+                            <span className="badge badge-secondary">৳0</span>
                           )}
                         </td>
                       </tr>
@@ -219,7 +211,7 @@ export const ReportsPage: React.FC = () => {
 
           {/* ITEMIZED BAZAR PURCHASES STATEMENT */}
           <div className="card">
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1.15rem' }}>2. Itemized Bazar Expense Log</h3>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '1.15rem' }}>Bazar Log</h3>
             <div className="table-responsive">
               <table className="table">
                 <thead>
@@ -227,9 +219,9 @@ export const ReportsPage: React.FC = () => {
                     <th>Date</th>
                     <th>Category</th>
                     <th>Description</th>
-                    <th>Shop / Vendor</th>
+                    <th>Shop</th>
                     <th>Purchaser</th>
-                    <th>Funding Source</th>
+                    <th>Source</th>
                     <th style={{ textAlign: 'right' }}>Amount</th>
                   </tr>
                 </thead>
@@ -242,7 +234,7 @@ export const ReportsPage: React.FC = () => {
                       <td>{exp.shop_name || 'N/A'}</td>
                       <td>{exp.purchaser_name || exp.purchaser_id}</td>
                       <td>
-                        {exp.funding_source === 'personal_credit' ? 'Personally Paid (Credit)' : 'Shared Mess Fund'}
+                        {exp.funding_source === 'personal_credit' ? 'Personal Credit' : 'Shared Fund'}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700 }}>
                         {formatCurrency(exp.amount, settings?.currency_symbol)}
@@ -267,12 +259,10 @@ export const ReportsPage: React.FC = () => {
           >
             <div style={{ flex: 1, textAlign: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Manager Signature</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Verified & Finalized</div>
             </div>
 
             <div style={{ flex: 1, textAlign: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Member Auditor Signature</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inspected & Confirmed</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Auditor Signature</div>
             </div>
           </div>
         </div>

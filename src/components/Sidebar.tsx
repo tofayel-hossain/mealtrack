@@ -28,16 +28,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const navItems = [
     { label: 'Dashboard', to: '/', icon: LayoutDashboard },
-    { label: 'Daily Meals', to: '/meals', icon: CalendarCheck },
-    { label: 'Bazar Tracker', to: '/bazar', icon: ShoppingBag },
-    { label: 'Deposits & Ledger', to: '/deposits', icon: Wallet },
-    { label: 'Members & Roles', to: '/members', icon: Users },
-    { label: 'Monthly Accounting', to: '/accounting', icon: Calculator },
-    { label: 'Monthly Closing', to: '/closing', icon: FileCheck2, highlight: true },
-    { label: 'Transparency Reports', to: '/reports', icon: FileSpreadsheet },
-    { label: 'Audit History', to: '/audit', icon: History },
+    { label: 'Meals', to: '/meals', icon: CalendarCheck },
+    { label: 'Bazar', to: '/bazar', icon: ShoppingBag },
+    { label: 'Deposits', to: '/deposits', icon: Wallet },
+    { label: 'Members', to: '/members', icon: Users },
+    { label: 'Accounting', to: '/accounting', icon: Calculator },
+    { label: 'Closing', to: '/closing', icon: FileCheck2, highlight: true },
+    { label: 'Reports', to: '/reports', icon: FileSpreadsheet },
+    { label: 'Audit', to: '/audit', icon: History },
     { label: 'Invitations', to: '/invitations', icon: UserPlus },
-    { label: 'Mess Settings', to: '/settings', icon: Settings },
+    { label: 'Settings', to: '/settings', icon: Settings },
   ];
 
   return (

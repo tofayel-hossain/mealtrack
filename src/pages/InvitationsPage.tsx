@@ -106,22 +106,22 @@ export const InvitationsPage: React.FC = () => {
   return (
     <div className="page-wrapper">
       {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <h1>Invitations</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Invitations</h1>
         </div>
 
         <div style={{
           background: 'rgba(31, 41, 55, 0.8)',
           border: '1px solid var(--border-card)',
           borderRadius: 'var(--radius-md)',
-          padding: '0.4rem 0.85rem',
+          padding: '0.35rem 0.75rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '0.4rem',
         }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mess System Code:</span>
-          <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--brand-primary)', fontSize: '1rem' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Code:</span>
+          <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--brand-primary)', fontSize: '0.95rem' }}>
             {activeSystem.code}
           </strong>
         </div>
@@ -129,31 +129,31 @@ export const InvitationsPage: React.FC = () => {
 
       {/* Manager Invite Generator Form */}
       {activeRole === 'manager' && (
-        <div className="card" style={{ marginBottom: '1.75rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Generate New Member Invitation</h3>
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <h3 style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>Invite Member</h3>
 
           <form onSubmit={handleCreateInvite}>
-            <div className="grid-cols-3" style={{ alignItems: 'flex-end' }}>
+            <div className="grid-cols-3" style={{ alignItems: 'flex-end', gap: '0.75rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Member Email</label>
+                <label className="form-label">Email</label>
                 <input
                   type="email"
                   className="form-control"
-                  placeholder="Member Email"
+                  placeholder="Email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Assign Role</label>
+                <label className="form-label">Role</label>
                 <select
                   className="form-control"
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as any)}
                 >
-                  <option value="member">Regular Mess Member</option>
-                  <option value="manager">Co-Manager</option>
+                  <option value="member">Member</option>
+                  <option value="manager">Manager</option>
                 </select>
               </div>
 
@@ -161,9 +161,9 @@ export const InvitationsPage: React.FC = () => {
                 type="submit"
                 className="btn btn-primary"
                 disabled={creating}
-                style={{ height: '42px' }}
+                style={{ height: '38px', padding: '0 1rem' }}
               >
-                <UserPlus size={16} /> {creating ? 'Generating...' : 'Create Invite Link'}
+                <UserPlus size={15} /> {creating ? 'Generating...' : 'Invite'}
               </button>
             </div>
           </form>
@@ -172,23 +172,23 @@ export const InvitationsPage: React.FC = () => {
 
       {/* Invitations Table */}
       <div className="card">
-        <h3 style={{ marginBottom: '1rem' }}>Active & Past Invitations</h3>
+        <h3 style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>Invitations</h3>
 
         {loading ? (
-          <LoadingSpinner message="Loading invitation tokens..." />
+          <LoadingSpinner message="Loading..." />
         ) : invitations.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-dim)' }}>
-            No invitations generated yet for this mess.
+            No invitations.
           </div>
         ) : (
           <div className="table-responsive">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Invite Code / Token</th>
-                  <th>Assigned Role</th>
-                  <th>Target Email</th>
-                  <th>Expires On</th>
+                  <th>Code</th>
+                  <th>Role</th>
+                  <th>Email</th>
+                  <th>Expires</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
@@ -202,12 +202,12 @@ export const InvitationsPage: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      <span className={`badge badge-${inv.role}`}>{inv.role}</span>
+                      <span className={`badge badge-${inv.role}`} style={{ textTransform: 'capitalize' }}>{inv.role}</span>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{inv.email || 'Open'}</td>
                     <td>{formatDate(inv.expires_at)}</td>
                     <td>
-                      <span className={`badge ${inv.status === 'pending' ? 'badge-credit' : 'badge-debt'}`}>
+                      <span className={`badge ${inv.status === 'pending' ? 'badge-credit' : 'badge-debt'}`} style={{ textTransform: 'capitalize' }}>
                         {inv.status}
                       </span>
                     </td>
@@ -221,11 +221,11 @@ export const InvitationsPage: React.FC = () => {
                             >
                               {copiedToken === inv.token ? (
                                 <>
-                                  <Check size={12} color="var(--brand-primary)" /> Copied!
+                                  <Check size={12} color="var(--brand-primary)" /> Copied
                                 </>
                               ) : (
                                 <>
-                                  <Copy size={12} /> Copy Link
+                                  <Copy size={12} /> Copy
                                 </>
                               )}
                             </button>

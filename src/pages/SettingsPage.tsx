@@ -105,7 +105,7 @@ export const SettingsPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Mess Settings</h1>
+          <h1>Settings</h1>
         </div>
 
         {activeRole !== 'manager' && (
@@ -135,7 +135,7 @@ export const SettingsPage: React.FC = () => {
 
       <form onSubmit={handleSave}>
         <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Meals & Cutoffs</h3>
+          <h3 style={{ marginBottom: '1rem' }}>Meals</h3>
 
           <div className="grid-cols-3">
             <div className="form-group">
@@ -154,7 +154,7 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Afternoon Cutoff</label>
+              <label className="form-label">Lunch Cutoff</label>
               <input
                 type="time"
                 step="1"
@@ -167,7 +167,7 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Night Cutoff</label>
+              <label className="form-label">Dinner Cutoff</label>
               <input
                 type="time"
                 step="1"
@@ -180,7 +180,7 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Meal System Start Date</label>
+              <label className="form-label">Start Date</label>
               <input
                 type="date"
                 className="form-control"
@@ -200,7 +200,7 @@ export const SettingsPage: React.FC = () => {
                 disabled={activeRole !== 'manager'}
               />
               <span style={{ fontSize: '0.875rem', color: 'var(--text-main)' }}>
-                Allow custom meal counts
+                Allow custom meals
               </span>
             </label>
 
@@ -212,7 +212,7 @@ export const SettingsPage: React.FC = () => {
                 disabled={activeRole !== 'manager'}
               />
               <span style={{ fontSize: '0.875rem', color: 'var(--text-main)' }}>
-                Auto assign default meals
+                Auto assign meals
               </span>
             </label>
 
@@ -224,7 +224,7 @@ export const SettingsPage: React.FC = () => {
                 disabled={activeRole !== 'manager'}
               />
               <span style={{ fontSize: '0.875rem', fontWeight: isMealSystemOff ? 700 : 500, color: isMealSystemOff ? 'var(--color-debt)' : 'var(--text-main)' }}>
-                Turn OFF Meal System (all meals will count as 0 until opened)
+                Turn off meal system (meals = 0)
               </span>
             </label>
           </div>
@@ -235,7 +235,7 @@ export const SettingsPage: React.FC = () => {
 
           <div className="grid-cols-3">
             <div className="form-group">
-              <label className="form-label">Currency Symbol</label>
+              <label className="form-label">Symbol</label>
               <input
                 type="text"
                 className="form-control"
@@ -247,7 +247,7 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Currency Code</label>
+              <label className="form-label">Code</label>
               <input
                 type="text"
                 className="form-control"
@@ -279,7 +279,7 @@ export const SettingsPage: React.FC = () => {
               className="btn btn-primary btn-lg"
               disabled={saving}
             >
-              <Save size={18} /> {saving ? 'Saving Changes...' : 'Save System Settings'}
+              <Save size={18} /> {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         )}

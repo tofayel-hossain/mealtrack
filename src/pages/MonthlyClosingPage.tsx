@@ -143,7 +143,7 @@ export const MonthlyClosingPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Monthly Closing</h1>
+          <h1>Closing</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -167,21 +167,21 @@ export const MonthlyClosingPage: React.FC = () => {
               className={`btn btn-sm ${activeTab === 'checklist' ? 'btn-primary' : 'btn-secondary'}`}
               style={{ border: 'none' }}
             >
-              Review & Finalize
+              Finalize
             </button>
             <button
               onClick={() => setActiveTab('versions')}
               className={`btn btn-sm ${activeTab === 'versions' ? 'btn-primary' : 'btn-secondary'}`}
               style={{ border: 'none' }}
             >
-              Version History ({snapshots.length})
+              History ({snapshots.length})
             </button>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <LoadingSpinner message="Checking monthly integrity and snapshot history..." />
+        <LoadingSpinner message="Loading..." />
       ) : activeTab === 'checklist' ? (
         <>
           {/* Status Alert */}
@@ -198,18 +198,13 @@ export const MonthlyClosingPage: React.FC = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
               <div>
                 <span className={`badge ${accounting?.status === 'finalized' ? 'badge-credit' : 'badge-warning'}`} style={{ marginBottom: '0.35rem' }}>
-                  {accounting?.status === 'finalized' ? `Finalized Snapshot Active (v${accounting.version})` : 'Month Open for Changes'}
+                  {accounting?.status === 'finalized' ? `Finalized (v${accounting.version})` : 'Open'}
                 </span>
                 <h3 style={{ fontSize: '1.3rem', margin: '0.2rem 0' }}>
                   {accounting?.status === 'finalized'
-                    ? `Accounting Period ${selectedPeriod} is Finalized`
-                    : `Accounting Period ${selectedPeriod} Pending Finalization`}
+                    ? `Period ${selectedPeriod} Finalized`
+                    : `Period ${selectedPeriod} Open`}
                 </h3>
-                <p style={{ fontSize: '0.85rem' }}>
-                  {accounting?.status === 'finalized'
-                    ? `Finalized on ${formatDateTime(accounting.finalized_at || undefined)} by ${accounting.finalized_by_name}. You can re-finalize to create an incremented revision version (v${accounting.version + 1}) if corrections were applied.`
-                    : 'Review the integrity checklist below before locking the monthly figures and propagating carry-forward balances.'}
-                </p>
               </div>
 
               {activeRole === 'manager' && (
@@ -217,10 +212,10 @@ export const MonthlyClosingPage: React.FC = () => {
                   onClick={handleFinalizeReport}
                   disabled={finalizing || !validation.canFinalize}
                   className="btn btn-primary btn-lg"
-                  style={{ minWidth: '200px' }}
+                  style={{ minWidth: '160px' }}
                 >
                   <Sparkles size={18} />
-                  {finalizing ? 'Finalizing...' : accounting?.status === 'finalized' ? `Create Revision (v${accounting.version + 1})` : `Finalize Month ${selectedPeriod}`}
+                  {finalizing ? 'Finalizing...' : accounting?.status === 'finalized' ? `Revise (v${accounting.version + 1})` : `Finalize`}
                 </button>
               )}
             </div>
@@ -228,8 +223,7 @@ export const MonthlyClosingPage: React.FC = () => {
 
           {/* INTEGRITY VALIDATION CHECKLIST */}
           <div className="card" style={{ marginBottom: '1.75rem' }}>
-            <h3 style={{ marginBottom: '0.4rem' }}>Pre-Closing Audit Checklist</h3>
-            <p style={{ marginBottom: '1rem' }}>Automatic checks for complete records, zero divisions, and unverified data</p>
+            <h3 style={{ marginBottom: '1rem' }}>Checklist</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {/* Check 1: Members */}
@@ -244,7 +238,7 @@ export const MonthlyClosingPage: React.FC = () => {
               }}>
                 <CheckCircle size={18} color="var(--brand-primary)" />
                 <div style={{ flex: 1, fontSize: '0.875rem' }}>
-                  <strong>Active Mess Members:</strong> {accounting?.members.length} members found and verified.
+                  <strong>Members:</strong> {accounting?.members.length} verified
                 </div>
               </div>
 
@@ -260,7 +254,7 @@ export const MonthlyClosingPage: React.FC = () => {
               }}>
                 <CheckCircle size={18} color="var(--brand-primary)" />
                 <div style={{ flex: 1, fontSize: '0.875rem' }}>
-                  <strong>Eligible Bazar Purchases:</strong> {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)} (Non-negative check passed).
+                  <strong>Bazar:</strong> {formatCurrency(accounting?.total_expenses, settings?.currency_symbol)}
                 </div>
               </div>
 
@@ -280,10 +274,10 @@ export const MonthlyClosingPage: React.FC = () => {
                   <CheckCircle size={18} color="var(--brand-primary)" />
                 )}
                 <div style={{ flex: 1, fontSize: '0.875rem' }}>
-                  <strong>Meal Rate Calculation:</strong>{' '}
+                  <strong>Meal Rate:</strong>{' '}
                   {validation.summary.hasZeroMealRate
-                    ? 'Total meals is 0. Meal rate is marked as Unavailable.'
-                    : `Rate calculated: ${formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}`}
+                    ? 'Unavailable (0 meals)'
+                    : formatMealRate(accounting?.meal_rate, settings?.currency_symbol)}
                 </div>
               </div>
 
@@ -303,10 +297,10 @@ export const MonthlyClosingPage: React.FC = () => {
                   <CheckCircle size={18} color="var(--brand-primary)" />
                 )}
                 <div style={{ flex: 1, fontSize: '0.875rem' }}>
-                  <strong>Kitchen Schedule Status:</strong>{' '}
+                  <strong>Kitchen Schedule:</strong>{' '}
                   {unresolvedDaysCount > 0
-                    ? `${unresolvedDaysCount} day(s) have "Pending Confirmation" status.`
-                    : 'All cooking days in the month have been finalized or cancelled.'}
+                    ? `${unresolvedDaysCount} pending days`
+                    : 'Confirmed'}
                 </div>
               </div>
 
@@ -326,10 +320,10 @@ export const MonthlyClosingPage: React.FC = () => {
                   <CheckCircle size={18} color="var(--brand-primary)" />
                 )}
                 <div style={{ flex: 1, fontSize: '0.875rem' }}>
-                  <strong>Expense Receipt Compliance:</strong>{' '}
+                  <strong>Receipts:</strong>{' '}
                   {unreceiptedExpensesCount > 0
-                    ? `${unreceiptedExpensesCount} expense(s) have no receipt or explanation.`
-                    : 'All bazar expenses have attached receipts or logged explanations.'}
+                    ? `${unreceiptedExpensesCount} unreceipted`
+                    : 'All receipts verified'}
                 </div>
               </div>
             </div>
@@ -342,6 +336,7 @@ export const MonthlyClosingPage: React.FC = () => {
                   <input
                     type="text"
                     className="form-control"
+                    placeholder="Reason"
                     value={finalizationReason}
                     onChange={(e) => setFinalizationReason(e.target.value)}
                   />
@@ -363,9 +358,9 @@ export const MonthlyClosingPage: React.FC = () => {
                     <th>Meal Cost</th>
                     <th>Opening</th>
                     <th>Deposits</th>
-                    <th>Personal Credits</th>
-                    <th>Closing Balance (Carry-forward)</th>
-                    <th>Next Month Status</th>
+                    <th>Bazar</th>
+                    <th>Closing</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -382,7 +377,7 @@ export const MonthlyClosingPage: React.FC = () => {
                       </td>
                       <td>
                         <span className={`badge ${m.closing_balance >= 0 ? 'badge-credit' : 'badge-debt'}`}>
-                          {m.closing_balance >= 0 ? 'Starts with Credit' : 'Starts in Debt'}
+                          {m.closing_balance >= 0 ? 'Credit' : 'Debt'}
                         </span>
                       </td>
                     </tr>
@@ -396,13 +391,12 @@ export const MonthlyClosingPage: React.FC = () => {
         /* TAB 2: VERSION SNAPSHOTS HISTORY */
         <div className="card">
           <div style={{ marginBottom: '1.25rem' }}>
-            <h3>Immutable Version Snapshots for {selectedPeriod}</h3>
-            <p>Every finalization is permanently preserved with full member figures and timestamps</p>
+            <h3>History</h3>
           </div>
 
           {snapshots.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-dim)' }}>
-              No finalized versions saved for {selectedPeriod} yet.
+              No history found.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -419,19 +413,21 @@ export const MonthlyClosingPage: React.FC = () => {
                   <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                       <span className="badge badge-manager" style={{ fontSize: '0.85rem' }}>
-                        Version {snap.version}
+                        v{snap.version}
                       </span>
-                      <strong style={{ fontSize: '1.05rem' }}>{selectedPeriod} Finalization</strong>
+                      <strong style={{ fontSize: '1.05rem' }}>{selectedPeriod}</strong>
                     </div>
 
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Finalized: <strong>{formatDateTime(snap.finalized_at)}</strong>
+                      {formatDateTime(snap.finalized_at)}
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-main)', marginBottom: '0.75rem' }}>
-                    Note / Reason: <em>"{snap.reason || 'Standard finalization'}"</em>
-                  </p>
+                  {snap.reason && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-main)', marginBottom: '0.75rem' }}>
+                      Reason: <em>"{snap.reason}"</em>
+                    </p>
+                  )}
 
                   <div style={{
                     display: 'grid',
@@ -443,15 +439,15 @@ export const MonthlyClosingPage: React.FC = () => {
                     fontSize: '0.825rem',
                   }}>
                     <div>
-                      <span style={{ color: 'var(--text-dim)' }}>Total Bazar:</span>{' '}
+                      <span style={{ color: 'var(--text-dim)' }}>Bazar:</span>{' '}
                       <strong>{formatCurrency(snap.summary_data.total_bazar_expenses, settings?.currency_symbol)}</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-dim)' }}>Total Meals:</span>{' '}
-                      <strong>{snap.summary_data.total_finalized_meals} meals</strong>
+                      <span style={{ color: 'var(--text-dim)' }}>Meals:</span>{' '}
+                      <strong>{snap.summary_data.total_finalized_meals}</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-dim)' }}>Calculated Rate:</span>{' '}
+                      <span style={{ color: 'var(--text-dim)' }}>Rate:</span>{' '}
                       <strong>{formatMealRate(snap.summary_data.meal_rate, settings?.currency_symbol)}</strong>
                     </div>
                   </div>

@@ -50,36 +50,35 @@ export const RegisterPage: React.FC = () => {
       background: 'radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 50%), var(--bg-primary)',
     }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{
             display: 'inline-flex',
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            padding: '0.85rem',
-            borderRadius: '16px',
-            marginBottom: '0.75rem',
+            padding: '0.75rem',
+            borderRadius: '14px',
+            marginBottom: '0.5rem',
             boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
           }}>
-            <UtensilsCrossed size={32} color="#ffffff" />
+            <UtensilsCrossed size={28} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.85rem', marginBottom: '0.2rem' }}>MealTrack</h1>
-          <p style={{ fontSize: '0.9rem' }}>Create your shared mess accounting account</p>
+          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.1rem' }}>MealTrack</h1>
         </div>
 
-        <div className="card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Create Account</h2>
+        <div className="card" style={{ padding: '1.75rem' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Register</h2>
 
           {error && (
             <div style={{
               background: 'rgba(244, 63, 94, 0.15)',
               border: '1px solid rgba(244, 63, 94, 0.3)',
               borderRadius: 'var(--radius-md)',
-              padding: '0.75rem',
+              padding: '0.65rem 0.75rem',
               color: 'var(--color-debt)',
               fontSize: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              marginBottom: '1.25rem',
+              marginBottom: '1rem',
             }}>
               <AlertCircle size={16} />
               <span>{error}</span>
@@ -105,7 +104,7 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Email Address</label>
+              <label className="form-label">Email</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
@@ -122,13 +121,13 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Phone Number</label>
+              <label className="form-label">Phone</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="tel"
                   className="form-control"
-                  placeholder="Phone Number"
+                  placeholder="Phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={{ paddingLeft: '2.2rem' }}
@@ -144,7 +143,7 @@ export const RegisterPage: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="form-control"
-                  placeholder="Min. 6 characters"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={{ paddingLeft: '2.2rem', paddingRight: '2.4rem' }}
@@ -168,7 +167,7 @@ export const RegisterPage: React.FC = () => {
                     alignItems: 'center',
                     padding: '4px',
                   }}
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  title="Toggle"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -179,16 +178,15 @@ export const RegisterPage: React.FC = () => {
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ width: '100%', marginTop: '0.75rem', padding: '0.75rem' }}
+              style={{ width: '100%', marginTop: '0.75rem', padding: '0.65rem' }}
             >
-              {loading ? 'Registering...' : 'Register Account'}
+              {loading ? 'Registering...' : 'Register'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Already have an account?{' '}
+          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             <Link to="/login" style={{ color: 'var(--brand-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              Sign In
+              Login
             </Link>
           </div>
         </div>

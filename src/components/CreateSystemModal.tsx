@@ -46,8 +46,8 @@ export const CreateSystemModal: React.FC<CreateSystemModalProps> = ({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Building size={20} color="var(--brand-primary)" />
-            <h3 style={{ fontSize: '1.15rem' }}>Create New Meal System</h3>
+            <Building size={18} color="var(--brand-primary)" />
+            <h3 style={{ fontSize: '1.1rem' }}>Create Mess</h3>
           </div>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
@@ -66,7 +66,7 @@ export const CreateSystemModal: React.FC<CreateSystemModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <AlertCircle size={16} />
                 <span>{error}</span>
@@ -74,11 +74,11 @@ export const CreateSystemModal: React.FC<CreateSystemModalProps> = ({
             )}
 
             <div className="form-group">
-              <label className="form-label">System / Mess Name</label>
+              <label className="form-label">Name</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Mess Name"
+                placeholder="Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -102,7 +102,7 @@ export const CreateSystemModal: React.FC<CreateSystemModalProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Meal System'}
+              {loading ? 'Creating...' : 'Create'}
             </button>
           </div>
         </form>

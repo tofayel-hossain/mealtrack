@@ -50,12 +50,12 @@ export const MembersPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Mess Members</h1>
+          <h1>Members</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <Link to="/invitations" className="btn btn-secondary btn-sm">
-            <UserPlus size={15} /> Invite New Member
+            <UserPlus size={15} /> Invite
           </Link>
 
           {activeRole === 'manager' && (
@@ -64,7 +64,7 @@ export const MembersPage: React.FC = () => {
               className="btn btn-outline btn-sm"
               style={{ color: 'var(--color-warning)', borderColor: 'rgba(245, 158, 11, 0.4)' }}
             >
-              <ShieldAlert size={15} /> Transfer Leadership
+              <ShieldAlert size={15} /> Transfer Manager
             </button>
           )}
         </div>
@@ -116,7 +116,7 @@ export const MembersPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Phone size={13} color="var(--text-dim)" />
-                    <span>{mem.profile?.phone || 'No phone added'}</span>
+                    <span>{mem.profile?.phone || 'No phone'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Calendar size={13} color="var(--text-dim)" />
@@ -141,26 +141,26 @@ export const MembersPage: React.FC = () => {
                       fontSize: '0.78rem',
                     }}>
                       <div style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-muted)' }}>
-                        <span title="Total Bazar Done this month">
-                          🛒 Bazar: <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(mSummary.total_bazar_done, settings?.currency_symbol)}</strong>
+                        <span>
+                          Bazar: <strong style={{ color: 'var(--brand-primary)' }}>{formatCurrency(mSummary.total_bazar_done, settings?.currency_symbol)}</strong>
                         </span>
-                        <span title="Room/Seat Rent">
-                          🏠 Rent: <strong style={{ color: 'var(--accent-indigo)' }}>{formatCurrency(mSummary.house_rent, settings?.currency_symbol)}</strong>
+                        <span>
+                          Rent: <strong style={{ color: 'var(--accent-indigo)' }}>{formatCurrency(mSummary.house_rent, settings?.currency_symbol)}</strong>
                         </span>
                       </div>
 
                       <div>
                         {mSummary.amount_need_to_pay > 0 ? (
                           <span className="badge badge-debt" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
-                            Need to Pay: {formatCurrency(mSummary.amount_need_to_pay, settings?.currency_symbol)}
+                            Due: {formatCurrency(mSummary.amount_need_to_pay, settings?.currency_symbol)}
                           </span>
                         ) : mSummary.surplus_advance > 0 ? (
                           <span className="badge badge-credit" style={{ fontSize: '0.75rem' }}>
-                            Advance: +{formatCurrency(mSummary.surplus_advance, settings?.currency_symbol)}
+                            +{formatCurrency(mSummary.surplus_advance, settings?.currency_symbol)}
                           </span>
                         ) : (
                           <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>
-                            Settled (৳0)
+                            ৳0
                           </span>
                         )}
                       </div>

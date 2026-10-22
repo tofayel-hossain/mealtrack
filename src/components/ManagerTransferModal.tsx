@@ -67,8 +67,8 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShieldAlert size={20} color="var(--accent-amber)" />
-            <h3 style={{ fontSize: '1.15rem' }}>Transfer Manager Leadership</h3>
+            <ShieldAlert size={18} color="var(--accent-amber)" />
+            <h3 style={{ fontSize: '1.1rem' }}>Transfer Manager</h3>
           </div>
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
             <X size={16} />
@@ -81,14 +81,14 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
               <div style={{
                 background: 'rgba(244, 63, 94, 0.15)',
                 border: '1px solid rgba(244, 63, 94, 0.3)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--color-debt)',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <AlertCircle size={16} />
                 <span>{error}</span>
@@ -112,7 +112,7 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Transfer Reason</label>
+              <label className="form-label">Reason</label>
               <textarea
                 className="form-control"
                 rows={3}
@@ -124,12 +124,12 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
             </div>
 
             <div style={{
-              marginTop: '1rem',
+              marginTop: '0.75rem',
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               gap: '0.6rem',
               background: 'rgba(11, 15, 25, 0.6)',
-              padding: '0.75rem',
+              padding: '0.65rem 0.75rem',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-subtle)',
             }}>
@@ -138,10 +138,10 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
                 id="confirm-transfer"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                style={{ cursor: 'pointer' }}
               />
               <label htmlFor="confirm-transfer" style={{ fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                I understand and confirm that I am handing over all manager authority and will become a standard member.
+                Confirm role transfer
               </label>
             </div>
           </div>
@@ -155,7 +155,7 @@ export const ManagerTransferModal: React.FC<ManagerTransferModalProps> = ({
               className="btn btn-danger btn-sm"
               disabled={loading || !confirmed || eligibleMembers.length === 0}
             >
-              {loading ? 'Transferring...' : 'Confirm Manager Transfer'}
+              {loading ? 'Transferring...' : 'Transfer'}
             </button>
           </div>
         </form>

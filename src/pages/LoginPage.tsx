@@ -76,36 +76,35 @@ export const LoginPage: React.FC = () => {
     }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{
             display: 'inline-flex',
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            padding: '0.85rem',
-            borderRadius: '16px',
-            marginBottom: '0.75rem',
+            padding: '0.75rem',
+            borderRadius: '14px',
+            marginBottom: '0.5rem',
             boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
           }}>
-            <UtensilsCrossed size={32} color="#ffffff" />
+            <UtensilsCrossed size={28} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.85rem', marginBottom: '0.2rem' }}>MealTrack</h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mess & Hostel Meal Accounting</p>
+          <h1 style={{ fontSize: '1.6rem', marginBottom: '0.1rem' }}>MealTrack</h1>
         </div>
 
-        <div className="card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Account Login</h2>
+        <div className="card" style={{ padding: '1.75rem' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Login</h2>
 
           {error && (
             <div style={{
               background: 'rgba(244, 63, 94, 0.15)',
               border: '1px solid rgba(244, 63, 94, 0.3)',
               borderRadius: 'var(--radius-md)',
-              padding: '0.75rem',
+              padding: '0.65rem 0.75rem',
               color: 'var(--color-debt)',
               fontSize: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              marginBottom: '1.25rem',
+              marginBottom: '1rem',
             }}>
               <AlertCircle size={16} />
               <span>{error}</span>
@@ -114,7 +113,7 @@ export const LoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} autoComplete="off">
             <div className="form-group">
-              <label className="form-label">Email Address</label>
+              <label className="form-label">Email</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
@@ -149,7 +148,7 @@ export const LoginPage: React.FC = () => {
                     padding: 0,
                   }}
                 >
-                  Forgot password?
+                  Forgot?
                 </button>
               </div>
               <div style={{ position: 'relative', marginTop: '0.35rem' }}>
@@ -179,7 +178,7 @@ export const LoginPage: React.FC = () => {
                     alignItems: 'center',
                     padding: '4px',
                   }}
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  title="Toggle"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -190,16 +189,15 @@ export const LoginPage: React.FC = () => {
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ width: '100%', marginTop: '0.75rem', padding: '0.75rem' }}
+              style={{ width: '100%', marginTop: '0.75rem', padding: '0.65rem' }}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Need an account?{' '}
+          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             <Link to="/register" style={{ color: 'var(--brand-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              Create Account
+              Register
             </Link>
           </div>
         </div>
@@ -208,11 +206,11 @@ export const LoginPage: React.FC = () => {
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '420px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div className="modal-content" style={{ maxWidth: '400px', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <KeyRound size={20} color="var(--brand-primary)" />
-                <h3 style={{ fontSize: '1.15rem', margin: 0 }}>Reset Password</h3>
+                <KeyRound size={18} color="var(--brand-primary)" />
+                <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Reset Password</h3>
               </div>
               <button
                 type="button"
@@ -228,22 +226,18 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
 
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
-              Enter your registered email address. We will send you a password reset link to recover your account.
-            </p>
-
             {resetSuccess && (
               <div style={{
                 background: 'rgba(16, 185, 129, 0.12)',
                 border: '1px solid rgba(16, 185, 129, 0.35)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--brand-primary)',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <CheckCircle size={16} />
                 <span>{resetSuccess}</span>
@@ -254,14 +248,14 @@ export const LoginPage: React.FC = () => {
               <div style={{
                 background: 'rgba(244, 63, 94, 0.12)',
                 border: '1px solid rgba(244, 63, 94, 0.35)',
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--color-debt)',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
               }}>
                 <AlertCircle size={16} />
                 <span>{resetError}</span>
@@ -269,14 +263,14 @@ export const LoginPage: React.FC = () => {
             )}
 
             <form onSubmit={handleResetPassword}>
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Registered Email</label>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="email"
                     className="form-control"
-                    placeholder="name@example.com"
+                    placeholder="Email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     style={{ paddingLeft: '2.2rem' }}
@@ -285,7 +279,7 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
@@ -298,7 +292,7 @@ export const LoginPage: React.FC = () => {
                   className="btn btn-primary btn-sm"
                   disabled={resetLoading}
                 >
-                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                  {resetLoading ? 'Sending...' : 'Send Link'}
                 </button>
               </div>
             </form>

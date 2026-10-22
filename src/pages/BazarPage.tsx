@@ -158,7 +158,7 @@ export const BazarPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.75rem' }}>
         <div>
-          <h1>Bazar Expenses</h1>
+          <h1>Bazar</h1>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -179,7 +179,7 @@ export const BazarPage: React.FC = () => {
           </button>
 
           <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm">
-            <Plus size={15} /> Record Bazar
+            <Plus size={15} /> Add Expense
           </button>
         </div>
       </div>
@@ -187,21 +187,21 @@ export const BazarPage: React.FC = () => {
       {/* Summary Stat Cards */}
       <div className="grid-cols-4" style={{ marginBottom: '1.75rem' }}>
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Bazar Expenses</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Bazar</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.2rem 0' }}>
             {formatCurrency(totalBazarAmount, settings?.currency_symbol)}
           </div>
         </div>
 
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shared Mess Fund</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shared Fund</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--accent-indigo)', margin: '0.2rem 0' }}>
             {formatCurrency(sharedFundAmount, settings?.currency_symbol)}
           </div>
         </div>
 
         <div className="card">
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Personally Paid</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Personal Credit</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--brand-primary)', margin: '0.2rem 0' }}>
             {formatCurrency(personalCreditAmount, settings?.currency_symbol)}
           </div>
@@ -220,7 +220,7 @@ export const BazarPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users size={18} color="var(--brand-primary)" />
-            <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Bazar Contribution by Member ({selectedPeriod})</h3>
+            <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Member Bazar</h3>
           </div>
           {memberFilter !== 'all' && (
             <button
@@ -228,14 +228,14 @@ export const BazarPage: React.FC = () => {
               className="btn btn-secondary btn-sm"
               style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
             >
-              Clear Member Filter (Showing: {memberBazarList.find((m) => m.memberId === memberFilter)?.memberName})
+              All Members
             </button>
           )}
         </div>
 
         {memberBazarList.length === 0 ? (
           <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            No members have recorded bazar for this month yet.
+            No expenses recorded.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
@@ -255,7 +255,7 @@ export const BazarPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  title="Click to filter expenses by this member"
+                  title="Filter by this member"
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -276,19 +276,18 @@ export const BazarPage: React.FC = () => {
                       <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{m.memberName}</span>
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                      {m.tripCount} trip{m.tripCount !== 1 ? 's' : ''} ({pct}%)
+                      {m.tripCount} trips ({pct}%)
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Bazar Done:</span>
                     <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--brand-primary)' }}>
                       {formatCurrency(m.totalAmount, settings?.currency_symbol)}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
-                    <span>Shared Fund: {formatCurrency(m.sharedFundAmount, settings?.currency_symbol)}</span>
+                    <span>Shared: {formatCurrency(m.sharedFundAmount, settings?.currency_symbol)}</span>
                     <span style={{ color: 'var(--accent-teal)' }}>Personal: {formatCurrency(m.personalCreditAmount, settings?.currency_symbol)}</span>
                   </div>
 
@@ -310,7 +309,7 @@ export const BazarPage: React.FC = () => {
             <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Search by description, shop, purchaser..."
+              placeholder="Search..."
               className="form-control"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -324,7 +323,7 @@ export const BazarPage: React.FC = () => {
               value={memberFilter}
               onChange={(e) => setMemberFilter(e.target.value)}
             >
-              <option value="all">All Shoppers (Members)</option>
+              <option value="all">All Members</option>
               {memberBazarList.map((m) => (
                 <option key={m.memberId} value={m.memberId}>
                   {m.memberName} ({formatCurrency(m.totalAmount, settings?.currency_symbol)})
@@ -340,14 +339,14 @@ export const BazarPage: React.FC = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
               <option value="all">All Categories</option>
-              <option value="rice">Rice (চাল)</option>
-              <option value="vegetables">Vegetables (সবজি)</option>
-              <option value="fish">Fish (মাছ)</option>
-              <option value="meat">Meat (মাংস)</option>
-              <option value="eggs">Eggs (ডিম)</option>
-              <option value="oil">Oil (তেল)</option>
-              <option value="spices">Spices (মসলা)</option>
-              <option value="snacks">Snacks (নাস্তা)</option>
+              <option value="rice">Rice</option>
+              <option value="vegetables">Vegetables</option>
+              <option value="fish">Fish</option>
+              <option value="meat">Meat</option>
+              <option value="eggs">Eggs</option>
+              <option value="oil">Oil</option>
+              <option value="spices">Spices</option>
+              <option value="snacks">Snacks</option>
               <option value="household">Household</option>
               <option value="other">Other</option>
             </select>
@@ -359,9 +358,9 @@ export const BazarPage: React.FC = () => {
               value={fundingFilter}
               onChange={(e) => setFundingFilter(e.target.value)}
             >
-              <option value="all">All Funding Sources</option>
-              <option value="shared_fund">Shared Mess Fund</option>
-              <option value="personal_credit">Personally Paid</option>
+              <option value="all">All Sources</option>
+              <option value="shared_fund">Shared Fund</option>
+              <option value="personal_credit">Personal Credit</option>
             </select>
           </div>
         </div>
@@ -370,17 +369,13 @@ export const BazarPage: React.FC = () => {
       {/* Itemized Table */}
       <div className="card">
         {loading ? (
-          <LoadingSpinner message="Loading itemized grocery records..." />
+          <LoadingSpinner message="Loading..." />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title="No Bazar Expenses Found"
-            description={
-              searchQuery || categoryFilter !== 'all'
-                ? 'No expenses match your search or filter criteria.'
-                : `No grocery purchases recorded for ${selectedPeriod} yet.`
-            }
-            actionText="Record First Expense"
+            title="No Expenses"
+            description="No expenses found."
+            actionText="Add Expense"
             onAction={() => setShowAddModal(true)}
           />
         ) : (
@@ -391,9 +386,9 @@ export const BazarPage: React.FC = () => {
                   <th>Date</th>
                   <th>Category</th>
                   <th>Description</th>
-                  <th>Shop / Vendor</th>
+                  <th>Shop</th>
                   <th>Purchaser</th>
-                  <th>Funding Source</th>
+                  <th>Source</th>
                   <th>Receipt</th>
                   <th style={{ textAlign: 'right' }}>Amount</th>
                   {activeRole === 'manager' && <th style={{ textAlign: 'center' }}>Action</th>}

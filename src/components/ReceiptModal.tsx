@@ -25,7 +25,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       >
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '1.1rem' }}>Bazar Receipt</h3>
+            <h3 style={{ fontSize: '1.1rem' }}>Receipt</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{description}</p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -35,7 +35,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               rel="noreferrer"
               className="btn btn-secondary btn-sm"
               style={{ textDecoration: 'none' }}
-              title="Open in new tab"
+              title="Open"
             >
               <ExternalLink size={14} /> Open
             </a>
@@ -69,12 +69,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           />
         </div>
 
-        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            Transparent Proof of Purchase (Stored in Supabase Storage)
-          </span>
+        <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
           <button onClick={onClose} className="btn btn-secondary btn-sm">
-            Close Viewer
+            Close
           </button>
         </div>
       </div>

@@ -122,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenCreateSys
               }}
             >
               <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
-                Meal Systems
+                Systems
               </div>
               {systems.map((s) => (
                 <button
@@ -163,20 +163,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenCreateSys
                 className="btn btn-outline btn-sm"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
-                <Plus size={14} /> Create New Mess
+                <Plus size={14} /> Create Mess
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Center: Sequential Cutoff Information */}
+      {/* Center: Cutoff Information */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         {settings?.lunch_cutoff_time && settings?.dinner_cutoff_time && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.4rem',
             background: cutoff.isFullPastCutoff
               ? 'rgba(244, 63, 94, 0.12)'
               : cutoff.isAfternoonPastCutoff
@@ -189,19 +189,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onOpenCreateSys
                 ? 'rgba(245, 158, 11, 0.3)'
                 : 'rgba(16, 185, 129, 0.3)'
             }`,
-            padding: '0.35rem 0.85rem',
+            padding: '0.3rem 0.75rem',
             borderRadius: 'var(--radius-full)',
-            fontSize: '0.775rem',
+            fontSize: '0.75rem',
             fontWeight: 600,
           }}>
-            <Clock size={13} />
+            <Clock size={12} />
             <span>
-              Afternoon: {settings.lunch_cutoff_time.slice(0, 5)} ({cutoff.afternoonTimeLeft}) • Night: {settings.dinner_cutoff_time.slice(0, 5)} ({cutoff.nightTimeLeft})
+              Lunch: {settings.lunch_cutoff_time.slice(0, 5)} • Dinner: {settings.dinner_cutoff_time.slice(0, 5)}
             </span>
           </div>
         )}
 
-        <span className={`badge badge-${activeRole}`}>
+        <span className={`badge badge-${activeRole}`} style={{ textTransform: 'capitalize' }}>
           {activeRole === 'manager' ? <Shield size={12} /> : <User size={12} />}
           {activeRole}
         </span>

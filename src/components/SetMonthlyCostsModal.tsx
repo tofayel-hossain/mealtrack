@@ -153,18 +153,14 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '640px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '1rem', borderBottom: '1px solid var(--border-card)' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-              <Home size={20} color="var(--brand-primary)" />
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Monthly Fixed Costs & House Rent</h2>
-            </div>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-              Period: <strong style={{ color: 'var(--text-main)' }}>{period}</strong> • Fixed costs are set per person (fix for all members); house rent varies per member.
-            </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Home size={18} color="var(--brand-primary)" />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Fixed Costs & Rent</h2>
+            <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{period}</span>
           </div>
           <button onClick={onClose} className="btn-icon" style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -173,42 +169,36 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
           background: 'rgba(99, 102, 241, 0.08)',
           border: '1px solid rgba(99, 102, 241, 0.25)',
           borderRadius: 'var(--radius-md)',
-          padding: '0.85rem 1rem',
-          margin: '0.85rem 0 0.4rem 0',
+          padding: '0.6rem 0.85rem',
+          margin: '0.75rem 0 0.25rem 0',
           display: 'flex',
-          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.75rem',
         }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--accent-indigo)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <CalendarCheck size={16} /> Meal System Open Date for {period}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-              Meals count day by day starting from this date.
-            </div>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent-indigo)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <CalendarCheck size={16} /> Start Date
           </div>
-          <div style={{ minWidth: '150px' }}>
+          <div style={{ minWidth: '140px' }}>
             <input
               type="date"
               className="form-control"
               value={mealOpenDate}
               onChange={(e) => setMealOpenDate(e.target.value)}
-              style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
+              style={{ padding: '0.3rem 0.5rem', fontSize: '0.85rem' }}
             />
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0 0.5rem 0', background: 'var(--bg-secondary)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', margin: '0.75rem 0 0.5rem 0', background: 'var(--bg-secondary)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
           <button
             type="button"
             onClick={() => setActiveTab('fixed')}
             className={`btn btn-sm ${activeTab === 'fixed' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, border: 'none' }}
           >
-            <Receipt size={14} /> Fixed Bills (Per Person Cost)
+            <Receipt size={14} /> Fixed Costs
           </button>
           <button
             type="button"
@@ -216,12 +206,12 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
             className={`btn btn-sm ${activeTab === 'rent' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, border: 'none' }}
           >
-            <Home size={14} /> House Rent (Individual Per Member)
+            <Home size={14} /> House Rent
           </button>
         </div>
 
         {error && (
-          <div style={{ margin: '0.75rem 0', padding: '0.75rem', background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-debt)', fontSize: '0.85rem' }}>
+          <div style={{ margin: '0.5rem 0', padding: '0.5rem 0.75rem', background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: 'var(--radius-md)', color: 'var(--color-debt)', fontSize: '0.85rem' }}>
             {error}
           </div>
         )}
@@ -230,68 +220,42 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
         <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem', marginTop: '0.5rem' }}>
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Loading costs configuration...
+              Loading...
             </div>
           ) : activeTab === 'fixed' ? (
             <div>
               {/* Highlight summary card */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(31, 41, 55, 0.5) 100%)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.85rem 1rem',
-                marginBottom: '0.85rem',
+                padding: '0.75rem 1rem',
+                marginBottom: '0.75rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                flexWrap: 'wrap',
                 gap: '0.75rem',
               }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Fixed Cost Per Member (Fix for All)
+                    Per Member
                   </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--brand-primary)' }}>
-                    {formatCurrency(perMemberFixedCost, settings?.currency_symbol)} / person
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                    Each member pays this exact fixed amount
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-primary)' }}>
+                    {formatCurrency(perMemberFixedCost, settings?.currency_symbol)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Total Mess Fixed Fund ({memberCount} members)
+                    Total ({memberCount} members)
                   </div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-teal)' }}>
                     {formatCurrency(totalFixedCost, settings?.currency_symbol)}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                    ({formatCurrency(perMemberFixedCost, settings?.currency_symbol)} × {memberCount} members)
-                  </div>
                 </div>
               </div>
 
-              {/* Informative Guidance Banner */}
-              <div style={{
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.65rem 0.85rem',
-                marginBottom: '1rem',
-                fontSize: '0.8rem',
-                color: 'var(--text-main)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}>
-                <Info size={16} color="#60a5fa" />
-                <span>
-                  <strong>Per-Person Fixed Cost:</strong> Enter each bill amount <strong>per member</strong>. This cost is fixed and charged identically to every member (Cook, WiFi, Utilities, etc.).
-                </span>
-              </div>
-
               {/* Items List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {fixedCosts.map((item, idx) => (
                   <div
                     key={item.id || idx}
@@ -300,7 +264,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                       gap: '0.5rem',
                       alignItems: 'center',
                       background: 'rgba(11, 15, 25, 0.5)',
-                      padding: '0.5rem 0.75rem',
+                      padding: '0.45rem 0.65rem',
                       borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border-subtle)',
                     }}
@@ -308,26 +272,26 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. Cook (Khala) Bill, WiFi, Electricity"
+                      placeholder="Title"
                       value={item.title}
                       onChange={(e) => handleUpdateFixedCost(idx, 'title', e.target.value)}
-                      style={{ flex: 2, padding: '0.45rem 0.65rem', fontSize: '0.85rem' }}
+                      style={{ flex: 2, padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
                     />
                     <select
                       className="form-control"
                       value={item.category}
                       onChange={(e) => handleUpdateFixedCost(idx, 'category', e.target.value)}
-                      style={{ flex: 1.2, padding: '0.45rem 0.5rem', fontSize: '0.8rem' }}
+                      style={{ flex: 1.2, padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
                     >
-                      <option value="cook">Cook / Khala</option>
-                      <option value="wifi">WiFi / Internet</option>
+                      <option value="cook">Cook</option>
+                      <option value="wifi">WiFi</option>
                       <option value="electricity">Electricity</option>
-                      <option value="gas">Gas / Cylinder</option>
-                      <option value="waste">Waste / Cleaner</option>
-                      <option value="cleaning">Cleaning Supplies</option>
-                      <option value="other">Other Fixed Bill</option>
+                      <option value="gas">Gas</option>
+                      <option value="waste">Waste</option>
+                      <option value="cleaning">Cleaning</option>
+                      <option value="other">Other</option>
                     </select>
-                    <div style={{ position: 'relative', width: '135px' }}>
+                    <div style={{ position: 'relative', width: '120px' }}>
                       <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                         {settings?.currency_symbol || '৳'}
                       </span>
@@ -336,19 +300,18 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                         min="0"
                         step="any"
                         className="form-control"
-                        placeholder="Per person"
+                        placeholder="Amount"
                         value={item.amount === 0 ? '' : item.amount}
                         onChange={(e) => handleUpdateFixedCost(idx, 'amount', parseFloat(e.target.value) || 0)}
-                        style={{ padding: '0.45rem 0.5rem 0.45rem 1.6rem', fontSize: '0.85rem', textAlign: 'right' }}
-                        title="Fixed cost per person (same for every member)"
+                        style={{ padding: '0.4rem 0.5rem 0.4rem 1.5rem', fontSize: '0.85rem', textAlign: 'right' }}
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveFixedCost(idx)}
                       className="btn-icon"
-                      style={{ color: 'var(--color-debt)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.4rem' }}
-                      title="Remove cost item"
+                      style={{ color: 'var(--color-debt)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.35rem' }}
+                      title="Delete"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -360,41 +323,34 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                 type="button"
                 onClick={handleAddFixedCost}
                 className="btn btn-outline btn-sm"
-                style={{ marginTop: '0.75rem', width: '100%', borderStyle: 'dashed' }}
+                style={{ marginTop: '0.65rem', width: '100%', borderStyle: 'dashed' }}
               >
-                <Plus size={14} /> Add Another Fixed Cost Item
+                <Plus size={14} /> Add Item
               </button>
             </div>
           ) : (
             <div>
               {/* House Rent Summary Card */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(31, 41, 55, 0.5) 100%)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
+                background: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.85rem 1rem',
-                marginBottom: '1rem',
+                padding: '0.75rem 1rem',
+                marginBottom: '0.75rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
               }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Total Monthly House Rent
-                  </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
-                    {formatCurrency(totalHouseRent, settings?.currency_symbol)}
-                  </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Total Rent
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '280px', textAlign: 'right' }}>
-                  Each member pays their own room/seat rent according to room allocation.
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
+                  {formatCurrency(totalHouseRent, settings?.currency_symbol)}
                 </div>
               </div>
 
               {/* Members Rent Inputs */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {activeMembers.map((mem) => {
                   const currentRent = memberRents[mem.user_id] ?? 0;
                   return (
@@ -405,39 +361,39 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         background: 'rgba(11, 15, 25, 0.5)',
-                        padding: '0.65rem 0.85rem',
+                        padding: '0.5rem 0.75rem',
                         borderRadius: 'var(--radius-md)',
                         border: '1px solid var(--border-subtle)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                         <div style={{
-                          width: '36px',
-                          height: '36px',
+                          width: '32px',
+                          height: '32px',
                           borderRadius: '50%',
                           background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 700,
-                          fontSize: '0.85rem',
+                          fontSize: '0.8rem',
                           color: '#fff',
                         }}>
                           {(mem.profile?.full_name || 'M').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
                             {mem.profile?.full_name || 'Member'}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                            Role: {mem.role}
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'capitalize' }}>
+                            {mem.role}
                           </div>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Room Rent:</span>
-                        <div style={{ position: 'relative', width: '130px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Rent:</span>
+                        <div style={{ position: 'relative', width: '120px' }}>
                           <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
                             {settings?.currency_symbol || '৳'}
                           </span>
@@ -449,7 +405,7 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
                             placeholder="0.00"
                             value={currentRent === 0 ? '' : currentRent}
                             onChange={(e) => handleUpdateRent(mem.user_id, e.target.value)}
-                            style={{ padding: '0.45rem 0.5rem 0.45rem 1.6rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: 600 }}
+                            style={{ padding: '0.4rem 0.5rem 0.4rem 1.5rem', fontSize: '0.85rem', textAlign: 'right', fontWeight: 600 }}
                           />
                         </div>
                       </div>
@@ -462,12 +418,12 @@ export const SetMonthlyCostsModal: React.FC<SetMonthlyCostsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--border-card)', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-card)', marginTop: '0.75rem' }}>
           <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={saving}>
             Cancel
           </button>
           <button type="button" onClick={handleSave} className="btn btn-primary btn-sm" disabled={saving || loading}>
-            {saving ? 'Saving...' : 'Save Costs & Update Balances'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
