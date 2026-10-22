@@ -1,0 +1,219 @@
+// ==============================================================================
+// MEAL HISAB: CORE ACCOUNTING MATHEMATICS ENGINE
+// High-precision monetary and meal rate calculations for shared mess accounting.
+// ==============================================================================
+
+/**
+ * Rounds a number to a fixed number of decimal places safely.
+ */
+export function roundToDecimals(value: number, decimals: number = 2): number {
+  if (!isFinite(value) || isNaN(value)) return 0;
+  const factor = Math.pow(10, decimals);
+  return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
+/**
+ * Calculates the monthly meal rate:
+ * Monthly meal rate = eligible bazar expenses / finalized total meals
+ * 
+ * If total meals is zero or less, the meal rate is UNAVAILABLE (returns null).
+ * Deposits, carried forward balances, and prior months NEVER affect meal rate.
+ */
+export function calculateMonthlyMealRate(
+  eligibleBazarExpenses: number,
+  finalizedTotalMeals: number
+): number | null {
+  if (!isFinite(finalizedTotalMeals) || finalizedTotalMeals <= 0) {
+    return null;
+  }
+  if (!isFinite(eligibleBazarExpenses) || eligibleBazarExpenses < 0) {
+    return 0;
+  }
+  return roundToDecimals(eligibleBazarExpenses / finalizedTotalMeals, 4);
+}
+
+/**
+ * Calculates a member's meal cost for the period:
+ * Member meal cost = finalized member meal count × monthly meal rate
+ */
+export function calculateMemberMealCost(
+  memberMealCount: number,
+  mealRate: number | null
+): number {
+  if (mealRate === null || !isFinite(mealRate) || mealRate <= 0) {
+    return 0;
+  }
+  if (!isFinite(memberMealCount) || memberMealCount <= 0) {
+    return 0;
+  }
+  return roundToDecimals(memberMealCount * mealRate, 2);
+}
+
+/**
+ * Calculates a member's percentage contribution to total meals:
+ * Member meal contribution = (member finalized meals / total finalized meals) * 100
+ */
+export function calculateMealContributionPercentage(
+  memberMeals: number,
+  totalMeals: number
+): number {
+  if (!isFinite(totalMeals) || totalMeals <= 0 || !isFinite(memberMeals) || memberMeals <= 0) {
+    return 0;
+  }
+  return roundToDecimals((memberMeals / totalMeals) * 100, 2);
+}
+
+export interface BalanceCalculationInput {
+  openingBalance: number;
+  deposits: number;
+  personalBazarCredits: number;
+  positiveAdjustments?: number;
+  mealCost: number;
+  negativeAdjustments?: number;
+  otherCharges?: number;
+}
+
+/**
+ * Calculates member closing balance using standard convention:
+ * Positive (+) = Available Credit (advance paid)
+ * Negative (-) = Outstanding Debt (owed to mess)
+ * 
+ * Closing balance =
+ *   opening balance
+ *   + deposits
+ *   + eligible personal bazar credits
+ *   + positive adjustments
+ *   − meal costs
+ *   − negative adjustments
+ *   − other charges
+ */
+export function calculateClosingBalance(input: BalanceCalculationInput): number {
+  const opening = Number(input.openingBalance) || 0;
+  const deposits = Number(input.deposits) || 0;
+  const personalCredits = Number(input.personalBazarCredits) || 0;
+  const posAdj = Number(input.positiveAdjustments) || 0;
+  const mealCost = Number(input.mealCost) || 0;
+  const negAdj = Number(input.negativeAdjustments) || 0;
+  const otherCharges = Number(input.otherCharges) || 0;
+
+  const totalCredits = opening + deposits + personalCredits + posAdj;
+  const totalDebits = mealCost + negAdj + otherCharges;
+
+  return roundToDecimals(totalCredits - totalDebits, 2);
+}
+
+/**
+ * Evaluates whether a balance is credit, debt, or settled
+ */
+export function getBalanceStatus(balance: number): 'credit' | 'debt' | 'settled' {
+  const rounded = roundToDecimals(balance, 2);
+  if (rounded > 0.005) return 'credit';
+  if (rounded < -0.005) return 'debt';
+  return 'settled';
+}
+
+/**
+ * Computes effective meal count for a day:
+ * 2 meals: Afternoon (Lunch) and Night (Dinner).
+ * Can be cut one-by-one or cut full meal.
+ * No-cooking day cancels both and charges 0 meals.
+ */
+export function computeEffectiveMealCount(params: {
+  cookingStatus: 'cooking' | 'no_cooking' | 'pending';
+  isTurnedOff?: boolean;
+  lunchTurnedOff?: boolean;
+  dinnerTurnedOff?: boolean;
+  lunchCount?: number;
+  dinnerCount?: number;
+  mealCount?: number;
+  defaultMeals?: number;
+}): number {
+  // A no-cooking day ALWAYS overrides and results in 0 meals charged
+  if (params.cookingStatus === 'no_cooking') {
+    return 0;
+  }
+  // If full day meal is turned off, 0 meals
+  if (params.isTurnedOff) {
+    return 0;
+  }
+
+  // Check slots (cut one-by-one)
+  const defaultPerSlot = (params.defaultMeals ?? 2.0) / 2;
+  const lunch = params.lunchTurnedOff ? 0 : (params.lunchCount ?? defaultPerSlot);
+  const dinner = params.dinnerTurnedOff ? 0 : (params.dinnerCount ?? defaultPerSlot);
+
+  // If slot info was provided
+  if (params.lunchTurnedOff !== undefined || params.dinnerTurnedOff !== undefined || params.lunchCount !== undefined || params.dinnerCount !== undefined) {
+    return Math.max(0, lunch + dinner);
+  }
+
+  // Fallback to legacy total meal count if slots not specified
+  const count = typeof params.mealCount === 'number' && !isNaN(params.mealCount)
+    ? params.mealCount
+    : (params.defaultMeals ?? 2.0);
+
+  return Math.max(0, count);
+}
+
+/**
+ * Validates whether a monthly period is ready for finalization.
+ */
+export interface FinalizationChecklistResult {
+  canFinalize: boolean;
+  warnings: string[];
+  blockers: string[];
+  summary: {
+    totalExpenses: number;
+    totalMeals: number;
+    mealRate: number | null;
+    memberCount: number;
+    hasZeroMealRate: boolean;
+  };
+}
+
+export function validateMonthlyFinalization(params: {
+  totalBazarExpenses: number;
+  totalFinalizedMeals: number;
+  unresolvedCookingDaysCount: number;
+  unreceiptedExpensesCount: number;
+  memberCount: number;
+}): FinalizationChecklistResult {
+  const warnings: string[] = [];
+  const blockers: string[] = [];
+
+  if (params.memberCount <= 0) {
+    blockers.push('No active members found in this meal system.');
+  }
+
+  if (params.unresolvedCookingDaysCount > 0) {
+    warnings.push(`${params.unresolvedCookingDaysCount} cooking day(s) have "Pending Confirmation" status.`);
+  }
+
+  if (params.unreceiptedExpensesCount > 0) {
+    warnings.push(`${params.unreceiptedExpensesCount} bazar expense(s) have no receipt or explanation.`);
+  }
+
+  if (params.totalBazarExpenses < 0) {
+    blockers.push('Total bazar expenses cannot be negative.');
+  }
+
+  const hasZeroMealRate = params.totalFinalizedMeals <= 0;
+  if (hasZeroMealRate) {
+    warnings.push('Total finalized meals is zero. Meal rate will be marked as Unavailable.');
+  }
+
+  const mealRate = calculateMonthlyMealRate(params.totalBazarExpenses, params.totalFinalizedMeals);
+
+  return {
+    canFinalize: blockers.length === 0,
+    warnings,
+    blockers,
+    summary: {
+      totalExpenses: roundToDecimals(params.totalBazarExpenses, 2),
+      totalMeals: roundToDecimals(params.totalFinalizedMeals, 2),
+      mealRate,
+      memberCount: params.memberCount,
+      hasZeroMealRate,
+    },
+  };
+}
